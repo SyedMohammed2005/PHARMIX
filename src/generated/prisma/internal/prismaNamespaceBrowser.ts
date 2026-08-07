@@ -55,7 +55,8 @@ export const ModelName = {
   Inventory: 'Inventory',
   Category: 'Category',
   Supplier: 'Supplier',
-  Product: 'Product'
+  Product: 'Product',
+  Batch: 'Batch'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -144,6 +145,22 @@ export const ProductScalarFieldEnum = {
 } as const
 
 export type ProductScalarFieldEnum = (typeof ProductScalarFieldEnum)[keyof typeof ProductScalarFieldEnum]
+
+
+export const BatchScalarFieldEnum = {
+  id: 'id',
+  batchNumber: 'batchNumber',
+  productId: 'productId',
+  manufactureDate: 'manufactureDate',
+  expiryDate: 'expiryDate',
+  quantity: 'quantity',
+  purchasePrice: 'purchasePrice',
+  sellingPrice: 'sellingPrice',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BatchScalarFieldEnum = (typeof BatchScalarFieldEnum)[keyof typeof BatchScalarFieldEnum]
 
 
 export const SortOrder = {

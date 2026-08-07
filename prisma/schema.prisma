@@ -103,10 +103,33 @@ model Product {
   category Category @relation(fields: [categoryId], references: [id])
   supplier Supplier @relation(fields: [supplierId], references: [id])
   inventory  Inventory?
-
+  batches Batch[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([categoryId])
   @@index([supplierId])
+}
+
+model Batch {
+  id              String   @id @default(cuid())
+
+  batchNumber     String   @unique
+
+  productId       String
+
+  manufactureDate DateTime
+  expiryDate      DateTime
+
+  quantity        Int      @default(0)
+
+  purchasePrice   Float
+  sellingPrice    Float
+
+  product Product @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([expiryDate])
 }

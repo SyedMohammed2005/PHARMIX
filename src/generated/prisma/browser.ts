@@ -42,3 +42,8 @@ export type Supplier = Prisma.SupplierModel
  * 
  */
 export type Product = Prisma.ProductModel
+/**
+ * Model Batch
+ * 
+ */
+export type Batch = Prisma.BatchModel

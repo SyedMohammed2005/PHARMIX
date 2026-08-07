@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+enum UserRole {
+  ADMIN
+  PHARMACIST
+  INVENTORY_MANAGER
+  BUSINESS_ANALYST
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  UPI
+  ONLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+
+  role      UserRole @default(PHARMACIST)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

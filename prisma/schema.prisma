@@ -36,3 +36,76 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+model Inventory {
+  id              String   @id @default(cuid())
+
+  productId       String   @unique
+
+  quantity        Int      @default(0)
+
+  minimumStock    Int      @default(10)
+
+  maximumStock    Int?
+
+  reorderPoint    Int      @default(10)
+
+  product         Product  @relation(fields: [productId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+
+  products    Product[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+model Supplier {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?  @unique
+  phone       String?
+  address     String?
+
+  products    Product[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Product {
+  id          String   @id @default(cuid())
+
+  name        String
+  genericName String?
+  brand       String?
+
+  sku         String   @unique
+  barcode     String?  @unique
+
+  purchasePrice Float
+  sellingPrice  Float
+  mrp           Float
+
+  gst         Float @default(0)
+
+  requiresPrescription Boolean @default(false)
+
+  categoryId  String
+  supplierId  String
+
+  category Category @relation(fields: [categoryId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  inventory  Inventory?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([supplierId])
+}

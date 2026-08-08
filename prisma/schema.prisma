@@ -49,6 +49,8 @@ model Inventory {
   maximumStock    Int?
 
   reorderPoint    Int      @default(10)
+  
+  transactions StockTransaction[]
 
   product         Product  @relation(fields: [productId], references: [id])
 
@@ -132,4 +134,28 @@ model Batch {
 
   @@index([productId])
   @@index([expiryDate])
+}
+
+enum StockTransactionType {
+  PURCHASE
+  SALE
+  RETURN
+  DAMAGE
+  ADJUSTMENT
+}
+
+model StockTransaction {
+  id          String   @id @default(cuid())
+
+  inventoryId String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+
+  type        StockTransactionType
+  quantity    Int
+  reason      String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([inventoryId])
+  @@index([type])
 }

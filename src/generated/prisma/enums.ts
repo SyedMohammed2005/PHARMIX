@@ -37,3 +37,14 @@ export const PaymentStatus = {
 } as const
 
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
+
+
+export const StockTransactionType = {
+  PURCHASE: 'PURCHASE',
+  SALE: 'SALE',
+  RETURN: 'RETURN',
+  DAMAGE: 'DAMAGE',
+  ADJUSTMENT: 'ADJUSTMENT'
+} as const
+
+export type StockTransactionType = (typeof StockTransactionType)[keyof typeof StockTransactionType]

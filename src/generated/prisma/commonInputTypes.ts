@@ -221,6 +221,23 @@ export type BoolWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedBoolFilter<$PrismaModel>
 }
 
+export type EnumStockTransactionTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.StockTransactionType | Prisma.EnumStockTransactionTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.StockTransactionType[] | Prisma.ListEnumStockTransactionTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.StockTransactionType[] | Prisma.ListEnumStockTransactionTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumStockTransactionTypeFilter<$PrismaModel> | $Enums.StockTransactionType
+}
+
+export type EnumStockTransactionTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.StockTransactionType | Prisma.EnumStockTransactionTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.StockTransactionType[] | Prisma.ListEnumStockTransactionTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.StockTransactionType[] | Prisma.ListEnumStockTransactionTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumStockTransactionTypeWithAggregatesFilter<$PrismaModel> | $Enums.StockTransactionType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumStockTransactionTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumStockTransactionTypeFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -428,6 +445,23 @@ export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedBoolFilter<$PrismaModel>
   _max?: Prisma.NestedBoolFilter<$PrismaModel>
+}
+
+export type NestedEnumStockTransactionTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.StockTransactionType | Prisma.EnumStockTransactionTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.StockTransactionType[] | Prisma.ListEnumStockTransactionTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.StockTransactionType[] | Prisma.ListEnumStockTransactionTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumStockTransactionTypeFilter<$PrismaModel> | $Enums.StockTransactionType
+}
+
+export type NestedEnumStockTransactionTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.StockTransactionType | Prisma.EnumStockTransactionTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.StockTransactionType[] | Prisma.ListEnumStockTransactionTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.StockTransactionType[] | Prisma.ListEnumStockTransactionTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumStockTransactionTypeWithAggregatesFilter<$PrismaModel> | $Enums.StockTransactionType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumStockTransactionTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumStockTransactionTypeFilter<$PrismaModel>
 }
 
 

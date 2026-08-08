@@ -47,3 +47,8 @@ export type Product = Prisma.ProductModel
  * 
  */
 export type Batch = Prisma.BatchModel
+/**
+ * Model StockTransaction
+ * 
+ */
+export type StockTransaction = Prisma.StockTransactionModel

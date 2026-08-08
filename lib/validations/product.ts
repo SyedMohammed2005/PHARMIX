@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export const createProductSchema = z.object({
   name: z.string().min(2, "Product name must be at least 2 characters"),
+  
+  
 
   genericName: z.string().optional(),
 
@@ -26,4 +28,11 @@ export const createProductSchema = z.object({
   supplierId: z.string().min(1, "Supplier is required"),
 });
 
-export type CreateProductInput = z.infer<typeof createProductSchema>;
+export const updateProductSchema =
+  createProductSchema.partial();
+
+export type CreateProductInput =
+  z.infer<typeof createProductSchema>;
+
+export type UpdateProductInput =
+  z.infer<typeof updateProductSchema>;

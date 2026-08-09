@@ -5,7 +5,19 @@ import { UserRole } from "@/src/generated/prisma/client";
 import { getCurrentUser, hasRole } from "@/lib/authorization";
 
 export async function GET(request: Request) {
+  
   try {
+    const currentUser = await getCurrentUser();
+
+if (!currentUser) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Not authenticated",
+    },
+    { status: 401 }
+  );
+}
     const { searchParams } = new URL(request.url);
 
     const search = searchParams.get("search");

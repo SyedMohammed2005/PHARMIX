@@ -1,9 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createCategorySchema } from "@/lib/validations/category";
+import { UserRole } from "@/src/generated/prisma/client";
+import { getCurrentUser, hasRole } from "@/lib/authorization";
 
 export async function GET(request: Request) {
   try {
+    const currentUser = await getCurrentUser();
+
+if (!currentUser) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Not authenticated",
+    },
+    { status: 401 }
+  );
+}
     const { searchParams } = new URL(request.url);
 
     const search = searchParams.get("search");
@@ -87,6 +100,32 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const currentUser = await getCurrentUser();
+
+if (!currentUser) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Not authenticated",
+    },
+    { status: 401 }
+  );
+}
+
+const allowed = hasRole(currentUser.role, [
+  UserRole.ADMIN,
+  UserRole.INVENTORY_MANAGER,
+]);
+
+if (!allowed) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "You are not authorized to create categories",
+    },
+    { status: 403 }
+  );
+}
     const body = await request.json();
 
     const validation = createCategorySchema.safeParse(body);

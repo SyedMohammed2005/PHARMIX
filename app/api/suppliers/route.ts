@@ -1,8 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
+import { UserRole } from "@/src/generated/prisma/client";
+import { getCurrentUser, hasRole } from "@/lib/authorization";
 export async function GET() {
   try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Not authenticated",
+        },
+        { status: 401 },
+      );
+    }
     const suppliers = await prisma.supplier.findMany({
       include: {
         products: true,
@@ -25,7 +37,7 @@ export async function GET() {
         success: false,
         message: "Failed to fetch suppliers",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -34,6 +46,32 @@ import { createSupplierSchema } from "@/lib/validations/supplier";
 
 export async function POST(request: Request) {
   try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Not authenticated",
+        },
+        { status: 401 },
+      );
+    }
+
+    const allowed = hasRole(currentUser.role, [
+      UserRole.ADMIN,
+      UserRole.INVENTORY_MANAGER,
+    ]);
+
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You are not authorized to create suppliers",
+        },
+        { status: 403 },
+      );
+    }
     const body = await request.json();
 
     const validation = createSupplierSchema.safeParse(body);
@@ -45,7 +83,7 @@ export async function POST(request: Request) {
           message: "Validation failed",
           errors: validation.error.flatten().fieldErrors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -64,7 +102,7 @@ export async function POST(request: Request) {
             success: false,
             message: "Supplier with this email already exists",
           },
-          { status: 409 }
+          { status: 409 },
         );
       }
     }
@@ -79,7 +117,7 @@ export async function POST(request: Request) {
         message: "Supplier created successfully",
         supplier,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("POST /api/suppliers error:", error);
@@ -89,7 +127,7 @@ export async function POST(request: Request) {
         success: false,
         message: "Failed to create supplier",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

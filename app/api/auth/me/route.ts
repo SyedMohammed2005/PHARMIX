@@ -2,9 +2,21 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/jwt";
+import { getCurrentUser } from "@/lib/authorization";
 
 export async function GET() {
   try {
+    const currentUser = await getCurrentUser();
+
+if (!currentUser) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Not authenticated",
+    },
+    { status: 401 }
+  );
+}
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;
 

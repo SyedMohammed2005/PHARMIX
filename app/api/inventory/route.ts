@@ -1,9 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createInventorySchema } from "@/lib/validations/inventory";
+import { UserRole } from "@/src/generated/prisma/client";
+import { getCurrentUser, hasRole } from "@/lib/authorization";
 
 export async function GET() {
+
   try {
+    const currentUser = await getCurrentUser();
+
+if (!currentUser) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Not authenticated",
+    },
+    { status: 401 }
+  );
+}
     const inventory = await prisma.inventory.findMany({
       include: {
         product: {
@@ -38,6 +52,32 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const currentUser = await getCurrentUser();
+
+if (!currentUser) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Not authenticated",
+    },
+    { status: 401 }
+  );
+}
+
+const allowed = hasRole(currentUser.role, [
+  UserRole.ADMIN,
+  UserRole.INVENTORY_MANAGER,
+]);
+
+if (!allowed) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "You are not authorized to create inventory",
+    },
+    { status: 403 }
+  );
+}
     const body = await request.json();
 
     const validation = createInventorySchema.safeParse(body);

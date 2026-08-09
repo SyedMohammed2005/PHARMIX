@@ -1,25 +1,110 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createProductSchema } from "@/lib/validations/product";
+import { UserRole } from "@/src/generated/prisma/client";
+import { getCurrentUser, hasRole } from "@/lib/authorization";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const products = await prisma.product.findMany({
-      include: {
-        category: true,
-        supplier: true,
-        inventory: true,
-        batches: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const { searchParams } = new URL(request.url);
 
-    return NextResponse.json({
-      success: true,
-      products,
-    });
+    const search = searchParams.get("search");
+    const categoryId = searchParams.get("categoryId");
+    const supplierId = searchParams.get("supplierId");
+    const page = Math.max(Number(searchParams.get("page")) || 1, 1);
+
+    const limit = Math.min(
+      Math.max(Number(searchParams.get("limit")) || 10, 1),
+      100,
+    );
+
+    const skip = (page - 1) * limit;
+
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc";
+
+    const allowedSortFields = [
+      "name",
+      "sellingPrice",
+      "purchasePrice",
+      "mrp",
+      "createdAt",
+    ];
+
+    const validSortBy = allowedSortFields.includes(sortBy)
+      ? sortBy
+      : "createdAt";
+      const where = {
+  ...(search
+    ? {
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            genericName: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            brand: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            sku: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
+        ],
+      }
+    : {}),
+
+  ...(categoryId ? { categoryId } : {}),
+
+  ...(supplierId ? { supplierId } : {}),
+};
+const total = await prisma.product.count({
+  where,
+});
+const products = await prisma.product.findMany({
+  where,
+
+  include: {
+    category: true,
+    supplier: true,
+    inventory: true,
+  },
+
+  orderBy: {
+    [validSortBy]: sortOrder,
+  },
+
+  skip,
+  take: limit,
+});
+
+   return NextResponse.json({
+  success: true,
+  count: products.length,
+
+  pagination: {
+    page,
+    limit,
+    total,
+    totalPages: Math.ceil(total / limit),
+    hasNextPage: page < Math.ceil(total / limit),
+    hasPreviousPage: page > 1,
+  },
+
+  products,
+});
   } catch (error) {
     console.error("GET /api/products error:", error);
 
@@ -28,12 +113,43 @@ export async function GET() {
         success: false,
         message: "Failed to fetch products",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
+
 export async function POST(request: Request) {
   try {
+    // Check authentication
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Not authenticated",
+        },
+        { status: 401 }
+      );
+    }
+
+    // Check authorization
+    const allowed = hasRole(currentUser.role, [
+      UserRole.ADMIN,
+      UserRole.INVENTORY_MANAGER,
+    ]);
+
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You are not authorized to create products",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Existing product creation logic
     const body = await request.json();
 
     const validation = createProductSchema.safeParse(body);

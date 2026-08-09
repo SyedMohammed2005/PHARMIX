@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { updateProductSchema } from "@/lib/validations/product";
+import { UserRole } from "@/src/generated/prisma/client";
+import { getCurrentUser, hasRole } from "@/lib/authorization";
+
 
 type RouteContext = {
   params: Promise<{
@@ -59,10 +62,42 @@ export async function PUT(
   context: RouteContext
 ) {
   try {
+    // Check authentication
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Not authenticated",
+        },
+        { status: 401 }
+      );
+    }
+
+    // Check authorization
+    const allowed = hasRole(currentUser.role, [
+      UserRole.ADMIN,
+      UserRole.INVENTORY_MANAGER,
+    ]);
+
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You are not authorized to update products",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Get product ID
     const { id } = await context.params;
 
+    // Read request body
     const body = await request.json();
 
+    // Validate request body
     const validation = updateProductSchema.safeParse(body);
 
     if (!validation.success) {
@@ -78,6 +113,7 @@ export async function PUT(
 
     const data = validation.data;
 
+    // Check if product exists
     const existingProduct = await prisma.product.findUnique({
       where: {
         id,
@@ -94,6 +130,7 @@ export async function PUT(
       );
     }
 
+    // Check duplicate SKU
     if (data.sku && data.sku !== existingProduct.sku) {
       const duplicateSku = await prisma.product.findFirst({
         where: {
@@ -115,6 +152,7 @@ export async function PUT(
       }
     }
 
+    // Update product
     const updatedProduct = await prisma.product.update({
       where: {
         id,
@@ -134,7 +172,10 @@ export async function PUT(
       product: updatedProduct,
     });
   } catch (error) {
-    console.error("PUT /api/products/[id] error:", error);
+    console.error(
+      "PUT /api/products/[id] error:",
+      error
+    );
 
     return NextResponse.json(
       {
@@ -151,6 +192,34 @@ export async function DELETE(
   context: RouteContext
 ) {
   try {
+    // Check authentication
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Not authenticated",
+        },
+        { status: 401 }
+      );
+    }
+
+    // Only ADMIN can delete products
+    const allowed = hasRole(currentUser.role, [
+      UserRole.ADMIN,
+    ]);
+
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You are not authorized to delete products",
+        },
+        { status: 403 }
+      );
+    }
+
     const { id } = await context.params;
 
     const existingProduct = await prisma.product.findUnique({
@@ -198,7 +267,10 @@ export async function DELETE(
       message: "Product deleted successfully",
     });
   } catch (error) {
-    console.error("DELETE /api/products/[id] error:", error);
+    console.error(
+      "DELETE /api/products/[id] error:",
+      error
+    );
 
     return NextResponse.json(
       {

@@ -33,135 +33,190 @@ const updateInventorySchema = z.object({
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
-
 export async function PUT(
-  request: Request,
-  context: RouteContext
+request: Request,
+context: RouteContext
 ) {
-  try {
-    // Check if user is logged in
-    const currentUser = await getCurrentUser();
+try {
+// Check if user is logged in
+const currentUser = await getCurrentUser();
 
-    if (!currentUser) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Not authenticated",
-        },
-        { status: 401 }
-      );
-    }
 
-    // Check if user has permission
-    const allowed = hasRole(currentUser.role, [
-      UserRole.ADMIN,
-      UserRole.INVENTORY_MANAGER,
-    ]);
+if (!currentUser) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Not authenticated",
+    },
+    { status: 401 }
+  );
+}
 
-    if (!allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "You are not authorized to update inventory",
-        },
-        { status: 403 }
-      );
-    }
+// Check if user has permission
+const allowed = hasRole(currentUser.role, [
+  UserRole.ADMIN,
+  UserRole.INVENTORY_MANAGER,
+]);
 
-    // Get inventory ID
-    const { id } = await context.params;
+if (!allowed) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "You are not authorized to update inventory",
+    },
+    { status: 403 }
+  );
+}
 
-    // Read request body
-    const body = await request.json();
+// Get inventory ID
+const { id } = await context.params;
 
-    // Validate request body
-    const validation = updateInventorySchema.safeParse(body);
+// Read request body
+const body = await request.json();
 
-    if (!validation.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Validation failed",
-          errors: validation.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
-    }
+// Validate request body
+const validation = updateInventorySchema.safeParse(body);
 
-    const data = validation.data;
+if (!validation.success) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Validation failed",
+      errors: validation.error.flatten().fieldErrors,
+    },
+    { status: 400 }
+  );
+}
 
-    // Check if inventory exists
-    const existingInventory = await prisma.inventory.findUnique({
-      where: {
-        id,
-      },
-    });
+const data = validation.data;
 
-    if (!existingInventory) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Inventory not found",
-        },
-        { status: 404 }
-      );
-    }
+// Check if inventory exists
+const existingInventory = await prisma.inventory.findUnique({
+  where: {
+    id,
+  },
+});
 
-    // Calculate stock limits
-    const minimumStock =
-      data.minimumStock ?? existingInventory.minimumStock;
+if (!existingInventory) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Inventory not found",
+    },
+    { status: 404 }
+  );
+}
 
-    const maximumStock =
-      data.maximumStock ?? existingInventory.maximumStock;
+// Calculate the final stock limits
+const minimumStock =
+  data.minimumStock ?? existingInventory.minimumStock;
 
-    // Validate stock limits
-    if (
-      maximumStock !== null &&
-      maximumStock < minimumStock
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Maximum stock cannot be less than minimum stock",
-        },
-        { status: 400 }
-      );
-    }
+const maximumStock =
+  data.maximumStock ?? existingInventory.maximumStock;
 
-    // Update inventory
-    const inventory = await prisma.inventory.update({
-      where: {
-        id,
-      },
-      data,
+const quantity =
+  data.quantity ?? existingInventory.quantity;
+
+  const reorderPoint =
+  data.reorderPoint ?? existingInventory.reorderPoint;
+
+// Validate minimum and maximum stock relationship
+if (
+  maximumStock !== null &&
+  maximumStock < minimumStock
+) {
+  return NextResponse.json(
+    {
+      success: false,
+      message:
+        "Maximum stock cannot be less than minimum stock",
+    },
+    { status: 400 }
+  );
+}
+
+// Validate quantity against maximum stock
+if (
+  maximumStock !== null &&
+  quantity > maximumStock
+) {
+  return NextResponse.json(
+    {
+      success: false,
+      message:
+        "Quantity cannot exceed maximum stock",
+    },
+    { status: 400 }
+  );
+}
+
+// Validate reorder point
+if (
+  reorderPoint !== null &&
+  reorderPoint < minimumStock
+) {
+  return NextResponse.json(
+    {
+      success: false,
+      message:
+        "Reorder point cannot be less than minimum stock",
+    },
+    { status: 400 }
+  );
+}
+
+if (
+  reorderPoint !== null &&
+  maximumStock !== null &&
+  reorderPoint > maximumStock
+) {
+  return NextResponse.json(
+    {
+      success: false,
+      message:
+        "Reorder point cannot be greater than maximum stock",
+    },
+    { status: 400 }
+  );
+}
+// Update inventory
+const inventory = await prisma.inventory.update({
+  where: {
+    id,
+  },
+  data,
+  include: {
+    product: {
       include: {
-        product: {
-          include: {
-            category: true,
-            supplier: true,
-          },
-        },
+        category: true,
+        supplier: true,
       },
-    });
+    },
+  },
+});
 
-    return NextResponse.json({
-      success: true,
-      message: "Inventory updated successfully",
-      inventory,
-    });
-  } catch (error) {
-    console.error(
-      "PUT /api/inventory/[id] error:",
-      error
-    );
+return NextResponse.json({
+  success: true,
+  message: "Inventory updated successfully",
+  inventory,
+});
 
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to update inventory",
-      },
-      { status: 500 }
-    );
-  }
+
+} catch (error) {
+console.error(
+"PUT /api/inventory/[id] error:",
+error
+);
+
+
+return NextResponse.json(
+  {
+    success: false,
+    message: "Failed to update inventory",
+  },
+  { status: 500 }
+);
+
+
+}
 }

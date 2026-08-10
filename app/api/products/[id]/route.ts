@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { updateProductSchema } from "@/lib/validations/product";
 import { UserRole } from "@/src/generated/prisma/client";
 import { getCurrentUser, hasRole } from "@/lib/authorization";
+import { Prisma } from "@/src/generated/prisma/client";
 
 
 type RouteContext = {
@@ -172,19 +173,44 @@ export async function PUT(
       product: updatedProduct,
     });
   } catch (error) {
-    console.error(
-      "PUT /api/products/[id] error:",
-      error
-    );
+  console.error("PUT /api/products/[id] error:", error);
 
+  // Unique constraint violation
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to update product",
+        message: "Product with this SKU or barcode already exists",
       },
-      { status: 500 }
+      { status: 409 }
     );
   }
+
+  // Foreign key constraint violation
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2003"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Invalid category or supplier",
+      },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Failed to update product",
+    },
+    { status: 500 }
+  );
+}
 }
 
 export async function DELETE(

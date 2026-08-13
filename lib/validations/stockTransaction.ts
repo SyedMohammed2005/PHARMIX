@@ -12,9 +12,11 @@ export const createStockTransactionSchema = z.object({
   ]),
 
   quantity: z
-    .number()
-    .int()
-    .positive("Quantity must be greater than 0"),
+  .number()
+  .int()
+  .refine((value) => value !== 0, {
+    message: "Quantity cannot be 0",
+  }),
 
   reason: z.string().optional(),
 });

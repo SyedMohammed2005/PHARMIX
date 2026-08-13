@@ -1,9 +1,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createStockTransactionSchema } from "@/lib/validations/stockTransaction";
+import { getCurrentUser, hasRole } from "@/lib/authorization";
+import { UserRole } from "@/src/generated/prisma/client";
 
 export async function POST(request: Request) {
   try {
+    // Check authentication
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Not authenticated",
+        },
+        { status: 401 }
+      );
+    }
+
+    // Validate request body
     const body = await request.json();
 
     const validation =
@@ -22,6 +38,32 @@ export async function POST(request: Request) {
 
     const data = validation.data;
 
+    // Check role
+    const isAdminOrManager = hasRole(currentUser.role, [
+      UserRole.ADMIN,
+      UserRole.INVENTORY_MANAGER,
+    ]);
+
+    const isPharmacist = currentUser.role === UserRole.PHARMACIST;
+
+    // Pharmacists can only process SALE and RETURN
+    if (
+      !isAdminOrManager &&
+      !(
+        isPharmacist &&
+        (data.type === "SALE" || data.type === "RETURN")
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You are not authorized to create this stock transaction",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Find inventory
     const inventory = await prisma.inventory.findUnique({
       where: {
         id: data.inventoryId,
@@ -54,6 +96,25 @@ export async function POST(request: Request) {
       newQuantity -= data.quantity;
     }
 
+    // ADJUSTMENT is intentionally handled separately later.
+   if (
+  data.type === "PURCHASE" ||
+  data.type === "RETURN"
+) {
+  newQuantity += Math.abs(data.quantity);
+}
+
+if (
+  data.type === "SALE" ||
+  data.type === "DAMAGE"
+) {
+  newQuantity -= Math.abs(data.quantity);
+}
+
+if (data.type === "ADJUSTMENT") {
+  newQuantity += data.quantity;
+}
+
     if (newQuantity < 0) {
       return NextResponse.json(
         {
@@ -64,6 +125,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Create transaction and update inventory atomically
     const result = await prisma.$transaction(async (tx) => {
       const transaction = await tx.stockTransaction.create({
         data: {

@@ -4,6 +4,152 @@ import { createStockTransactionSchema } from "@/lib/validations/stockTransaction
 import { getCurrentUser, hasRole } from "@/lib/authorization";
 import { UserRole } from "@/src/generated/prisma/client";
 
+export async function GET(request: Request) {
+  try {
+    // Check authentication
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Not authenticated",
+        },
+        { status: 401 }
+      );
+    }
+
+    // Check authorization
+    const allowed = hasRole(currentUser.role, [
+      UserRole.ADMIN,
+      UserRole.PHARMACIST,
+      UserRole.INVENTORY_MANAGER,
+      UserRole.BUSINESS_ANALYST,
+    ]);
+
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You are not authorized to view transactions",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Read query parameters
+    const { searchParams } = new URL(request.url);
+
+    const type = searchParams.get("type");
+    const inventoryId = searchParams.get("inventoryId");
+    
+    const validTypes = [
+  "PURCHASE",
+  "SALE",
+  "RETURN",
+  "DAMAGE",
+  "ADJUSTMENT",
+];
+
+if (type && !validTypes.includes(type)) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Invalid transaction type",
+    },
+    { status: 400 }
+  );
+}
+
+    const page = Math.max(
+      Number(searchParams.get("page")) || 1,
+      1
+    );
+
+    const limit = Math.min(
+      Math.max(
+        Number(searchParams.get("limit")) || 10,
+        1
+      ),
+      100
+    );
+
+    const skip = (page - 1) * limit;
+
+    // Build filter
+    const where: {
+      type?: "PURCHASE" | "SALE" | "RETURN" | "DAMAGE" | "ADJUSTMENT";
+      inventoryId?: string;
+    } = {};
+
+    if (
+      type === "PURCHASE" ||
+      type === "SALE" ||
+      type === "RETURN" ||
+      type === "DAMAGE" ||
+      type === "ADJUSTMENT"
+    ) {
+      where.type = type;
+    }
+
+    if (inventoryId) {
+      where.inventoryId = inventoryId;
+    }
+
+    // Get transactions + total count
+    const [transactions, total] = await prisma.$transaction([
+      prisma.stockTransaction.findMany({
+        where,
+        include: {
+          inventory: {
+            include: {
+              product: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip,
+        take: limit,
+      }),
+
+      prisma.stockTransaction.count({
+        where,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return NextResponse.json({
+      success: true,
+      count: transactions.length,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+      transactions,
+    });
+  } catch (error) {
+    console.error(
+      "GET /api/inventory/transactions error:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to fetch transactions",
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     // Check authentication
@@ -82,20 +228,23 @@ export async function POST(request: Request) {
 
     let newQuantity = inventory.quantity;
 
-    if (
-      data.type === "PURCHASE" ||
-      data.type === "RETURN"
-    ) {
-      newQuantity += data.quantity;
-    }
+   if (
+  data.type === "PURCHASE" ||
+  data.type === "RETURN"
+) {
+  newQuantity += Math.abs(data.quantity);
+}
 
-    if (
-      data.type === "SALE" ||
-      data.type === "DAMAGE"
-    ) {
-      newQuantity -= data.quantity;
-    }
+if (
+  data.type === "SALE" ||
+  data.type === "DAMAGE"
+) {
+  newQuantity -= Math.abs(data.quantity);
+}
 
+if (data.type === "ADJUSTMENT") {
+  newQuantity += data.quantity;
+}
     // ADJUSTMENT is intentionally handled separately later.
    if (
   data.type === "PURCHASE" ||

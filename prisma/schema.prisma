@@ -6,6 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
 enum UserRole {
   ADMIN
   PHARMACIST
@@ -26,111 +27,245 @@ enum PaymentStatus {
   FAILED
   REFUNDED
 }
-model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
 
-  role      UserRole @default(PHARMACIST)
+enum ReturnStatus {
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id       String @id @default(cuid())
+  name     String
+  email    String @unique
+  password String
+
+  role UserRole @default(PHARMACIST)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 model Inventory {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  productId       String   @unique
+  productId String @unique
 
-  quantity        Int      @default(0)
+  quantity Int @default(0)
 
-  minimumStock    Int      @default(10)
+  minimumStock Int @default(10)
 
-  maximumStock    Int?
+  maximumStock Int?
 
-  reorderPoint    Int      @default(10)
-  
+  reorderPoint Int @default(10)
+
   transactions StockTransaction[]
 
-  product         Product  @relation(fields: [productId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Category {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
   description String?
 
-  products    Product[]
+  products Product[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
+
 model Supplier {
-  id          String   @id @default(cuid())
-  name        String
-  email       String?  @unique
-  phone       String?
-  address     String?
+  id      String  @id @default(cuid())
+  name    String
+  email   String? @unique
+  phone   String?
+  address String?
 
-  products    Product[]
+  products Product[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id      String  @id @default(cuid())
+  name    String
+  phone   String? @unique
+  email   String? @unique
+  address String?
+
+  sales Sale[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sale {
+  id String @id @default(cuid())
+
+  invoiceNumber String @unique
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  subtotal    Float
+  discount    Float @default(0)
+  tax         Float @default(0)
+  totalAmount Float
+
+  items   SaleItem[]
+  payment Payment?
+  returns SaleReturn[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model SaleReturn {
+  id String @id @default(cuid())
+
+  returnNumber String @unique
+
+  saleId String
+  sale   Sale   @relation(fields: [saleId], references: [id])
+
+  totalRefund Float
+  reason      String?
+
+  status ReturnStatus @default(COMPLETED)
+
+  items ReturnItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([saleId])
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id String @id @default(cuid())
+
+  saleId String
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  batchId String
+  batch   Batch  @relation(fields: [batchId], references: [id])
+
+  quantity  Int
+  unitPrice Float
+  gst       Float @default(0)
+  subtotal  Float
+
+  returns ReturnItem[]
+
+  createdAt DateTime @default(now())
+
+  @@index([saleId])
+  @@index([productId])
+  @@index([batchId])
+}
+
+model ReturnItem {
+  id String @id @default(cuid())
+
+  returnId String
+  return   SaleReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  saleItemId String
+  saleItem   SaleItem @relation(fields: [saleItemId], references: [id])
+
+  quantity     Int
+  refundAmount Float
+
+  createdAt DateTime @default(now())
+
+  @@index([returnId])
+  @@index([saleItemId])
+}
+
+model Payment {
+  id String @id @default(cuid())
+
+  saleId String @unique
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  amount Float
+  method PaymentMethod
+  status PaymentStatus @default(COMPLETED)
+
+  refundedAmount Float @default(0)
+
+  transactionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([method])
+  @@index([status])
 }
 
 model Product {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   name        String
   genericName String?
   brand       String?
 
-  sku         String   @unique
-  barcode     String?  @unique
+  sku     String  @unique
+  barcode String? @unique
 
   purchasePrice Float
   sellingPrice  Float
   mrp           Float
 
-  gst         Float @default(0)
+  gst Float @default(0)
 
   requiresPrescription Boolean @default(false)
 
-  categoryId  String
-  supplierId  String
+  categoryId String
+  supplierId String
 
-  category Category @relation(fields: [categoryId], references: [id])
-  supplier Supplier @relation(fields: [supplierId], references: [id])
-  inventory  Inventory?
-  batches Batch[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  category  Category   @relation(fields: [categoryId], references: [id])
+  supplier  Supplier   @relation(fields: [supplierId], references: [id])
+  inventory Inventory?
+  batches   Batch[]
+  saleItems SaleItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@index([categoryId])
   @@index([supplierId])
 }
 
 model Batch {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  batchNumber     String   @unique
+  batchNumber String @unique
 
-  productId       String
+  productId String
 
   manufactureDate DateTime
   expiryDate      DateTime
 
-  quantity        Int      @default(0)
+  quantity Int @default(0)
 
-  purchasePrice   Float
-  sellingPrice    Float
+  purchasePrice Float
+  sellingPrice  Float
 
-  product Product @relation(fields: [productId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  product   Product    @relation(fields: [productId], references: [id])
+  saleItems SaleItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@index([productId])
   @@index([expiryDate])
@@ -145,16 +280,16 @@ enum StockTransactionType {
 }
 
 model StockTransaction {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   inventoryId String
   inventory   Inventory @relation(fields: [inventoryId], references: [id])
 
-  type        StockTransactionType
-  quantity    Int
-  reason      String?
+  type     StockTransactionType
+  quantity Int
+  reason   String?
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([inventoryId])
   @@index([type])

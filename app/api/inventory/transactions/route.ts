@@ -97,28 +97,30 @@ if (type && !validTypes.includes(type)) {
     }
 
     // Get transactions + total count
-    const [transactions, total] = await prisma.$transaction([
-      prisma.stockTransaction.findMany({
-        where,
-        include: {
-          inventory: {
-            include: {
-              product: true,
-            },
+    const transactions = await prisma.stockTransaction.findMany({
+  where,
+  include: {
+    inventory: {
+      include: {
+        product: {
+          include: {
+            category: true,
+            supplier: true,
           },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
-        skip,
-        take: limit,
-      }),
+      },
+    },
+  },
+  orderBy: {
+    createdAt: "desc",
+  },
+  skip,
+  take: limit,
+});
 
-      prisma.stockTransaction.count({
-        where,
-      }),
-    ]);
-
+const total = await prisma.stockTransaction.count({
+  where,
+});
     const totalPages = Math.ceil(total / limit);
 
     return NextResponse.json({
@@ -228,23 +230,6 @@ export async function POST(request: Request) {
 
     let newQuantity = inventory.quantity;
 
-   if (
-  data.type === "PURCHASE" ||
-  data.type === "RETURN"
-) {
-  newQuantity += Math.abs(data.quantity);
-}
-
-if (
-  data.type === "SALE" ||
-  data.type === "DAMAGE"
-) {
-  newQuantity -= Math.abs(data.quantity);
-}
-
-if (data.type === "ADJUSTMENT") {
-  newQuantity += data.quantity;
-}
     // ADJUSTMENT is intentionally handled separately later.
    if (
   data.type === "PURCHASE" ||

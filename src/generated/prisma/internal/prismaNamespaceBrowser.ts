@@ -208,6 +208,7 @@ export const PaymentScalarFieldEnum = {
   amount: 'amount',
   method: 'method',
   status: 'status',
+  refundedAmount: 'refundedAmount',
   transactionId: 'transactionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

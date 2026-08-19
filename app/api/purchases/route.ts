@@ -338,6 +338,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
 
 const search = searchParams.get("search")?.trim() || "";
+const supplierId = searchParams.get("supplierId")?.trim() || "";
+const startDate = searchParams.get("startDate")?.trim() || "";
+const endDate = searchParams.get("endDate")?.trim() || "";
+const paymentMethod =
+  searchParams.get("paymentMethod")?.trim().toUpperCase() || "";
 
 const requestedSort = searchParams.get("sortBy") || "createdAt";
 
@@ -351,7 +356,7 @@ const allowedSortFields = [
 const sortBy = allowedSortFields.includes(requestedSort)
   ? requestedSort
   : "createdAt";
-  
+
 const order = searchParams.get("order") === "asc" ? "asc" : "desc";
 
 const page = Math.max(
@@ -369,26 +374,58 @@ const limit = Math.min(
 
 const skip = (page - 1) * limit;
 
-const where = search
-  ? {
-      OR: [
-        {
-          purchaseNumber: {
-            contains: search,
-            mode: "insensitive" as const,
-          },
-        },
-        {
-          supplier: {
-            name: {
+const where = {
+  ...(search
+    ? {
+        OR: [
+          {
+            purchaseNumber: {
               contains: search,
               mode: "insensitive" as const,
             },
           },
+          {
+            supplier: {
+              name: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
+          },
+        ],
+      }
+    : {}),
+
+  ...(supplierId
+    ? {
+        supplierId,
+      }
+    : {}),
+
+  ...(startDate || endDate
+    ? {
+        createdAt: {
+          ...(startDate
+            ? {
+                gte: new Date(`${startDate}T00:00:00.000Z`),
+              }
+            : {}),
+          ...(endDate
+            ? {
+                lte: new Date(`${endDate}T23:59:59.999Z`),
+              }
+            : {}),
         },
-      ],
+      }
+    : {}),
+    ...(paymentMethod
+  ? {
+      payment: {
+        method: paymentMethod as PaymentMethod,
+      },
     }
-  : {};
+  : {}),
+};
 
 const total = await prisma.purchase.count({
   where,

@@ -106,3 +106,18 @@ export type Batch = Prisma.BatchModel
  * 
  */
 export type StockTransaction = Prisma.StockTransactionModel
+/**
+ * Model Purchase
+ * 
+ */
+export type Purchase = Prisma.PurchaseModel
+/**
+ * Model PurchaseItem
+ * 
+ */
+export type PurchaseItem = Prisma.PurchaseItemModel
+/**
+ * Model PurchasePayment
+ * 
+ */
+export type PurchasePayment = Prisma.PurchasePaymentModel

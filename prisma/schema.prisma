@@ -311,14 +311,54 @@ model Purchase {
   tax         Float @default(0)
   totalAmount Float
 
-  items   PurchaseItem[]
-  payment PurchasePayment?
+  items     PurchaseItem[]
+  payment   PurchasePayment?
+  returns   PurchaseReturn[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([supplierId])
+  @@index([createdAt])
+}
+
+model PurchaseReturn {
+  id String @id @default(cuid())
+
+  returnNumber String @unique
+
+  purchaseId String
+  purchase   Purchase @relation(fields: [purchaseId], references: [id])
+
+  totalRefund Float
+  reason      String?
+
+  status ReturnStatus @default(COMPLETED)
+
+  items PurchaseReturnItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([supplierId])
+  @@index([purchaseId])
   @@index([createdAt])
+}
+
+model PurchaseReturnItem {
+  id String @id @default(cuid())
+
+  returnId String
+  return   PurchaseReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  purchaseItemId String
+  purchaseItem   PurchaseItem @relation(fields: [purchaseItemId], references: [id])
+
+  quantity     Int
+  refundAmount Float
+
+  createdAt DateTime @default(now())
+
+  @@index([returnId])
+  @@index([purchaseItemId])
 }
 
 model PurchaseItem {
@@ -333,12 +373,12 @@ model PurchaseItem {
   batchId String
   batch   Batch  @relation(fields: [batchId], references: [id])
 
-  quantity  Int
-  unitPrice Float
-  gst       Float @default(0)
-  subtotal  Float
-
-  createdAt DateTime @default(now())
+  quantity    Int
+  unitPrice   Float
+  gst         Float                @default(0)
+  subtotal    Float
+  returnItems PurchaseReturnItem[]
+  createdAt   DateTime             @default(now())
 
   @@index([purchaseId])
   @@index([productId])

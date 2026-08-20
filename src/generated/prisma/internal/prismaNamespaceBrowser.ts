@@ -65,6 +65,8 @@ export const ModelName = {
   Batch: 'Batch',
   StockTransaction: 'StockTransaction',
   Purchase: 'Purchase',
+  PurchaseReturn: 'PurchaseReturn',
+  PurchaseReturnItem: 'PurchaseReturnItem',
   PurchaseItem: 'PurchaseItem',
   PurchasePayment: 'PurchasePayment'
 } as const
@@ -282,6 +284,32 @@ export const PurchaseScalarFieldEnum = {
 } as const
 
 export type PurchaseScalarFieldEnum = (typeof PurchaseScalarFieldEnum)[keyof typeof PurchaseScalarFieldEnum]
+
+
+export const PurchaseReturnScalarFieldEnum = {
+  id: 'id',
+  returnNumber: 'returnNumber',
+  purchaseId: 'purchaseId',
+  totalRefund: 'totalRefund',
+  reason: 'reason',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PurchaseReturnScalarFieldEnum = (typeof PurchaseReturnScalarFieldEnum)[keyof typeof PurchaseReturnScalarFieldEnum]
+
+
+export const PurchaseReturnItemScalarFieldEnum = {
+  id: 'id',
+  returnId: 'returnId',
+  purchaseItemId: 'purchaseItemId',
+  quantity: 'quantity',
+  refundAmount: 'refundAmount',
+  createdAt: 'createdAt'
+} as const
+
+export type PurchaseReturnItemScalarFieldEnum = (typeof PurchaseReturnItemScalarFieldEnum)[keyof typeof PurchaseReturnItemScalarFieldEnum]
 
 
 export const PurchaseItemScalarFieldEnum = {

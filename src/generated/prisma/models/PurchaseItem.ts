@@ -263,6 +263,7 @@ export type PurchaseItemWhereInput = {
   purchase?: Prisma.XOR<Prisma.PurchaseScalarRelationFilter, Prisma.PurchaseWhereInput>
   product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
   batch?: Prisma.XOR<Prisma.BatchScalarRelationFilter, Prisma.BatchWhereInput>
+  returnItems?: Prisma.PurchaseReturnItemListRelationFilter
 }
 
 export type PurchaseItemOrderByWithRelationInput = {
@@ -278,6 +279,7 @@ export type PurchaseItemOrderByWithRelationInput = {
   purchase?: Prisma.PurchaseOrderByWithRelationInput
   product?: Prisma.ProductOrderByWithRelationInput
   batch?: Prisma.BatchOrderByWithRelationInput
+  returnItems?: Prisma.PurchaseReturnItemOrderByRelationAggregateInput
 }
 
 export type PurchaseItemWhereUniqueInput = Prisma.AtLeast<{
@@ -296,6 +298,7 @@ export type PurchaseItemWhereUniqueInput = Prisma.AtLeast<{
   purchase?: Prisma.XOR<Prisma.PurchaseScalarRelationFilter, Prisma.PurchaseWhereInput>
   product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
   batch?: Prisma.XOR<Prisma.BatchScalarRelationFilter, Prisma.BatchWhereInput>
+  returnItems?: Prisma.PurchaseReturnItemListRelationFilter
 }, "id">
 
 export type PurchaseItemOrderByWithAggregationInput = {
@@ -340,6 +343,7 @@ export type PurchaseItemCreateInput = {
   purchase: Prisma.PurchaseCreateNestedOneWithoutItemsInput
   product: Prisma.ProductCreateNestedOneWithoutPurchaseItemsInput
   batch: Prisma.BatchCreateNestedOneWithoutPurchaseItemsInput
+  returnItems?: Prisma.PurchaseReturnItemCreateNestedManyWithoutPurchaseItemInput
 }
 
 export type PurchaseItemUncheckedCreateInput = {
@@ -352,6 +356,7 @@ export type PurchaseItemUncheckedCreateInput = {
   gst?: number
   subtotal: number
   createdAt?: Date | string
+  returnItems?: Prisma.PurchaseReturnItemUncheckedCreateNestedManyWithoutPurchaseItemInput
 }
 
 export type PurchaseItemUpdateInput = {
@@ -364,6 +369,7 @@ export type PurchaseItemUpdateInput = {
   purchase?: Prisma.PurchaseUpdateOneRequiredWithoutItemsNestedInput
   product?: Prisma.ProductUpdateOneRequiredWithoutPurchaseItemsNestedInput
   batch?: Prisma.BatchUpdateOneRequiredWithoutPurchaseItemsNestedInput
+  returnItems?: Prisma.PurchaseReturnItemUpdateManyWithoutPurchaseItemNestedInput
 }
 
 export type PurchaseItemUncheckedUpdateInput = {
@@ -376,6 +382,7 @@ export type PurchaseItemUncheckedUpdateInput = {
   gst?: Prisma.FloatFieldUpdateOperationsInput | number
   subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  returnItems?: Prisma.PurchaseReturnItemUncheckedUpdateManyWithoutPurchaseItemNestedInput
 }
 
 export type PurchaseItemCreateManyInput = {
@@ -419,6 +426,11 @@ export type PurchaseItemListRelationFilter = {
 
 export type PurchaseItemOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type PurchaseItemScalarRelationFilter = {
+  is?: Prisma.PurchaseItemWhereInput
+  isNot?: Prisma.PurchaseItemWhereInput
 }
 
 export type PurchaseItemCountOrderByAggregateInput = {
@@ -597,6 +609,20 @@ export type PurchaseItemUncheckedUpdateManyWithoutPurchaseNestedInput = {
   deleteMany?: Prisma.PurchaseItemScalarWhereInput | Prisma.PurchaseItemScalarWhereInput[]
 }
 
+export type PurchaseItemCreateNestedOneWithoutReturnItemsInput = {
+  create?: Prisma.XOR<Prisma.PurchaseItemCreateWithoutReturnItemsInput, Prisma.PurchaseItemUncheckedCreateWithoutReturnItemsInput>
+  connectOrCreate?: Prisma.PurchaseItemCreateOrConnectWithoutReturnItemsInput
+  connect?: Prisma.PurchaseItemWhereUniqueInput
+}
+
+export type PurchaseItemUpdateOneRequiredWithoutReturnItemsNestedInput = {
+  create?: Prisma.XOR<Prisma.PurchaseItemCreateWithoutReturnItemsInput, Prisma.PurchaseItemUncheckedCreateWithoutReturnItemsInput>
+  connectOrCreate?: Prisma.PurchaseItemCreateOrConnectWithoutReturnItemsInput
+  upsert?: Prisma.PurchaseItemUpsertWithoutReturnItemsInput
+  connect?: Prisma.PurchaseItemWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PurchaseItemUpdateToOneWithWhereWithoutReturnItemsInput, Prisma.PurchaseItemUpdateWithoutReturnItemsInput>, Prisma.PurchaseItemUncheckedUpdateWithoutReturnItemsInput>
+}
+
 export type PurchaseItemCreateWithoutProductInput = {
   id?: string
   quantity: number
@@ -606,6 +632,7 @@ export type PurchaseItemCreateWithoutProductInput = {
   createdAt?: Date | string
   purchase: Prisma.PurchaseCreateNestedOneWithoutItemsInput
   batch: Prisma.BatchCreateNestedOneWithoutPurchaseItemsInput
+  returnItems?: Prisma.PurchaseReturnItemCreateNestedManyWithoutPurchaseItemInput
 }
 
 export type PurchaseItemUncheckedCreateWithoutProductInput = {
@@ -617,6 +644,7 @@ export type PurchaseItemUncheckedCreateWithoutProductInput = {
   gst?: number
   subtotal: number
   createdAt?: Date | string
+  returnItems?: Prisma.PurchaseReturnItemUncheckedCreateNestedManyWithoutPurchaseItemInput
 }
 
 export type PurchaseItemCreateOrConnectWithoutProductInput = {
@@ -669,6 +697,7 @@ export type PurchaseItemCreateWithoutBatchInput = {
   createdAt?: Date | string
   purchase: Prisma.PurchaseCreateNestedOneWithoutItemsInput
   product: Prisma.ProductCreateNestedOneWithoutPurchaseItemsInput
+  returnItems?: Prisma.PurchaseReturnItemCreateNestedManyWithoutPurchaseItemInput
 }
 
 export type PurchaseItemUncheckedCreateWithoutBatchInput = {
@@ -680,6 +709,7 @@ export type PurchaseItemUncheckedCreateWithoutBatchInput = {
   gst?: number
   subtotal: number
   createdAt?: Date | string
+  returnItems?: Prisma.PurchaseReturnItemUncheckedCreateNestedManyWithoutPurchaseItemInput
 }
 
 export type PurchaseItemCreateOrConnectWithoutBatchInput = {
@@ -717,6 +747,7 @@ export type PurchaseItemCreateWithoutPurchaseInput = {
   createdAt?: Date | string
   product: Prisma.ProductCreateNestedOneWithoutPurchaseItemsInput
   batch: Prisma.BatchCreateNestedOneWithoutPurchaseItemsInput
+  returnItems?: Prisma.PurchaseReturnItemCreateNestedManyWithoutPurchaseItemInput
 }
 
 export type PurchaseItemUncheckedCreateWithoutPurchaseInput = {
@@ -728,6 +759,7 @@ export type PurchaseItemUncheckedCreateWithoutPurchaseInput = {
   gst?: number
   subtotal: number
   createdAt?: Date | string
+  returnItems?: Prisma.PurchaseReturnItemUncheckedCreateNestedManyWithoutPurchaseItemInput
 }
 
 export type PurchaseItemCreateOrConnectWithoutPurchaseInput = {
@@ -756,6 +788,70 @@ export type PurchaseItemUpdateManyWithWhereWithoutPurchaseInput = {
   data: Prisma.XOR<Prisma.PurchaseItemUpdateManyMutationInput, Prisma.PurchaseItemUncheckedUpdateManyWithoutPurchaseInput>
 }
 
+export type PurchaseItemCreateWithoutReturnItemsInput = {
+  id?: string
+  quantity: number
+  unitPrice: number
+  gst?: number
+  subtotal: number
+  createdAt?: Date | string
+  purchase: Prisma.PurchaseCreateNestedOneWithoutItemsInput
+  product: Prisma.ProductCreateNestedOneWithoutPurchaseItemsInput
+  batch: Prisma.BatchCreateNestedOneWithoutPurchaseItemsInput
+}
+
+export type PurchaseItemUncheckedCreateWithoutReturnItemsInput = {
+  id?: string
+  purchaseId: string
+  productId: string
+  batchId: string
+  quantity: number
+  unitPrice: number
+  gst?: number
+  subtotal: number
+  createdAt?: Date | string
+}
+
+export type PurchaseItemCreateOrConnectWithoutReturnItemsInput = {
+  where: Prisma.PurchaseItemWhereUniqueInput
+  create: Prisma.XOR<Prisma.PurchaseItemCreateWithoutReturnItemsInput, Prisma.PurchaseItemUncheckedCreateWithoutReturnItemsInput>
+}
+
+export type PurchaseItemUpsertWithoutReturnItemsInput = {
+  update: Prisma.XOR<Prisma.PurchaseItemUpdateWithoutReturnItemsInput, Prisma.PurchaseItemUncheckedUpdateWithoutReturnItemsInput>
+  create: Prisma.XOR<Prisma.PurchaseItemCreateWithoutReturnItemsInput, Prisma.PurchaseItemUncheckedCreateWithoutReturnItemsInput>
+  where?: Prisma.PurchaseItemWhereInput
+}
+
+export type PurchaseItemUpdateToOneWithWhereWithoutReturnItemsInput = {
+  where?: Prisma.PurchaseItemWhereInput
+  data: Prisma.XOR<Prisma.PurchaseItemUpdateWithoutReturnItemsInput, Prisma.PurchaseItemUncheckedUpdateWithoutReturnItemsInput>
+}
+
+export type PurchaseItemUpdateWithoutReturnItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  quantity?: Prisma.IntFieldUpdateOperationsInput | number
+  unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  purchase?: Prisma.PurchaseUpdateOneRequiredWithoutItemsNestedInput
+  product?: Prisma.ProductUpdateOneRequiredWithoutPurchaseItemsNestedInput
+  batch?: Prisma.BatchUpdateOneRequiredWithoutPurchaseItemsNestedInput
+}
+
+export type PurchaseItemUncheckedUpdateWithoutReturnItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  purchaseId?: Prisma.StringFieldUpdateOperationsInput | string
+  productId?: Prisma.StringFieldUpdateOperationsInput | string
+  batchId?: Prisma.StringFieldUpdateOperationsInput | string
+  quantity?: Prisma.IntFieldUpdateOperationsInput | number
+  unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type PurchaseItemCreateManyProductInput = {
   id?: string
   purchaseId: string
@@ -776,6 +872,7 @@ export type PurchaseItemUpdateWithoutProductInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   purchase?: Prisma.PurchaseUpdateOneRequiredWithoutItemsNestedInput
   batch?: Prisma.BatchUpdateOneRequiredWithoutPurchaseItemsNestedInput
+  returnItems?: Prisma.PurchaseReturnItemUpdateManyWithoutPurchaseItemNestedInput
 }
 
 export type PurchaseItemUncheckedUpdateWithoutProductInput = {
@@ -787,6 +884,7 @@ export type PurchaseItemUncheckedUpdateWithoutProductInput = {
   gst?: Prisma.FloatFieldUpdateOperationsInput | number
   subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  returnItems?: Prisma.PurchaseReturnItemUncheckedUpdateManyWithoutPurchaseItemNestedInput
 }
 
 export type PurchaseItemUncheckedUpdateManyWithoutProductInput = {
@@ -820,6 +918,7 @@ export type PurchaseItemUpdateWithoutBatchInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   purchase?: Prisma.PurchaseUpdateOneRequiredWithoutItemsNestedInput
   product?: Prisma.ProductUpdateOneRequiredWithoutPurchaseItemsNestedInput
+  returnItems?: Prisma.PurchaseReturnItemUpdateManyWithoutPurchaseItemNestedInput
 }
 
 export type PurchaseItemUncheckedUpdateWithoutBatchInput = {
@@ -831,6 +930,7 @@ export type PurchaseItemUncheckedUpdateWithoutBatchInput = {
   gst?: Prisma.FloatFieldUpdateOperationsInput | number
   subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  returnItems?: Prisma.PurchaseReturnItemUncheckedUpdateManyWithoutPurchaseItemNestedInput
 }
 
 export type PurchaseItemUncheckedUpdateManyWithoutBatchInput = {
@@ -864,6 +964,7 @@ export type PurchaseItemUpdateWithoutPurchaseInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   product?: Prisma.ProductUpdateOneRequiredWithoutPurchaseItemsNestedInput
   batch?: Prisma.BatchUpdateOneRequiredWithoutPurchaseItemsNestedInput
+  returnItems?: Prisma.PurchaseReturnItemUpdateManyWithoutPurchaseItemNestedInput
 }
 
 export type PurchaseItemUncheckedUpdateWithoutPurchaseInput = {
@@ -875,6 +976,7 @@ export type PurchaseItemUncheckedUpdateWithoutPurchaseInput = {
   gst?: Prisma.FloatFieldUpdateOperationsInput | number
   subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  returnItems?: Prisma.PurchaseReturnItemUncheckedUpdateManyWithoutPurchaseItemNestedInput
 }
 
 export type PurchaseItemUncheckedUpdateManyWithoutPurchaseInput = {
@@ -888,6 +990,35 @@ export type PurchaseItemUncheckedUpdateManyWithoutPurchaseInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+
+/**
+ * Count Type PurchaseItemCountOutputType
+ */
+
+export type PurchaseItemCountOutputType = {
+  returnItems: number
+}
+
+export type PurchaseItemCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  returnItems?: boolean | PurchaseItemCountOutputTypeCountReturnItemsArgs
+}
+
+/**
+ * PurchaseItemCountOutputType without action
+ */
+export type PurchaseItemCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PurchaseItemCountOutputType
+   */
+  select?: Prisma.PurchaseItemCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * PurchaseItemCountOutputType without action
+ */
+export type PurchaseItemCountOutputTypeCountReturnItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PurchaseReturnItemWhereInput
+}
 
 
 export type PurchaseItemSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -903,6 +1034,8 @@ export type PurchaseItemSelect<ExtArgs extends runtime.Types.Extensions.Internal
   purchase?: boolean | Prisma.PurchaseDefaultArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   batch?: boolean | Prisma.BatchDefaultArgs<ExtArgs>
+  returnItems?: boolean | Prisma.PurchaseItem$returnItemsArgs<ExtArgs>
+  _count?: boolean | Prisma.PurchaseItemCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["purchaseItem"]>
 
 export type PurchaseItemSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -952,6 +1085,8 @@ export type PurchaseItemInclude<ExtArgs extends runtime.Types.Extensions.Interna
   purchase?: boolean | Prisma.PurchaseDefaultArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   batch?: boolean | Prisma.BatchDefaultArgs<ExtArgs>
+  returnItems?: boolean | Prisma.PurchaseItem$returnItemsArgs<ExtArgs>
+  _count?: boolean | Prisma.PurchaseItemCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type PurchaseItemIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   purchase?: boolean | Prisma.PurchaseDefaultArgs<ExtArgs>
@@ -970,6 +1105,7 @@ export type $PurchaseItemPayload<ExtArgs extends runtime.Types.Extensions.Intern
     purchase: Prisma.$PurchasePayload<ExtArgs>
     product: Prisma.$ProductPayload<ExtArgs>
     batch: Prisma.$BatchPayload<ExtArgs>
+    returnItems: Prisma.$PurchaseReturnItemPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1378,6 +1514,7 @@ export interface Prisma__PurchaseItemClient<T, Null = never, ExtArgs extends run
   purchase<T extends Prisma.PurchaseDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PurchaseDefaultArgs<ExtArgs>>): Prisma.Prisma__PurchaseClient<runtime.Types.Result.GetResult<Prisma.$PurchasePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   product<T extends Prisma.ProductDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductDefaultArgs<ExtArgs>>): Prisma.Prisma__ProductClient<runtime.Types.Result.GetResult<Prisma.$ProductPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   batch<T extends Prisma.BatchDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BatchDefaultArgs<ExtArgs>>): Prisma.Prisma__BatchClient<runtime.Types.Result.GetResult<Prisma.$BatchPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  returnItems<T extends Prisma.PurchaseItem$returnItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PurchaseItem$returnItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PurchaseReturnItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1814,6 +1951,30 @@ export type PurchaseItemDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.
    * Limit how many PurchaseItems to delete.
    */
   limit?: number
+}
+
+/**
+ * PurchaseItem.returnItems
+ */
+export type PurchaseItem$returnItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PurchaseReturnItem
+   */
+  select?: Prisma.PurchaseReturnItemSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PurchaseReturnItem
+   */
+  omit?: Prisma.PurchaseReturnItemOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PurchaseReturnItemInclude<ExtArgs> | null
+  where?: Prisma.PurchaseReturnItemWhereInput
+  orderBy?: Prisma.PurchaseReturnItemOrderByWithRelationInput | Prisma.PurchaseReturnItemOrderByWithRelationInput[]
+  cursor?: Prisma.PurchaseReturnItemWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PurchaseReturnItemScalarFieldEnum | Prisma.PurchaseReturnItemScalarFieldEnum[]
 }
 
 /**

@@ -112,6 +112,16 @@ export type StockTransaction = Prisma.StockTransactionModel
  */
 export type Purchase = Prisma.PurchaseModel
 /**
+ * Model PurchaseReturn
+ * 
+ */
+export type PurchaseReturn = Prisma.PurchaseReturnModel
+/**
+ * Model PurchaseReturnItem
+ * 
+ */
+export type PurchaseReturnItem = Prisma.PurchaseReturnItemModel
+/**
  * Model PurchaseItem
  * 
  */

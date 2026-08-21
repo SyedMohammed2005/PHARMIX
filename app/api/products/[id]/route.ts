@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/src/generated/prisma/client";
 import { updateProductSchema } from "@/lib/validations/product";
 import { UserRole } from "@/src/generated/prisma/client";
 import { getCurrentUser, hasRole } from "@/lib/authorization";
-import { Prisma } from "@/src/generated/prisma/client";
-
+import {
+  getProductById,
+  updateProduct,
+  deleteProduct,
+} from "@/services/product.service";
 
 type RouteContext = {
   params: Promise<{
@@ -14,22 +17,12 @@ type RouteContext = {
 
 export async function GET(
   request: Request,
-  context: RouteContext
+  context: RouteContext,
 ) {
   try {
     const { id } = await context.params;
 
-    const product = await prisma.product.findUnique({
-      where: {
-        id,
-      },
-      include: {
-        category: true,
-        supplier: true,
-        inventory: true,
-        batches: true,
-      },
-    });
+    const product = await getProductById(id);
 
     if (!product) {
       return NextResponse.json(
@@ -37,7 +30,7 @@ export async function GET(
           success: false,
           message: "Product not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -46,24 +39,26 @@ export async function GET(
       product,
     });
   } catch (error) {
-    console.error("GET /api/products/[id] error:", error);
+    console.error(
+      "GET /api/products/[id] error:",
+      error,
+    );
 
     return NextResponse.json(
       {
         success: false,
         message: "Failed to fetch product",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: Request,
-  context: RouteContext
+  context: RouteContext,
 ) {
   try {
-    // Check authentication
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
@@ -72,11 +67,10 @@ export async function PUT(
           success: false,
           message: "Not authenticated",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // Check authorization
     const allowed = hasRole(currentUser.role, [
       UserRole.ADMIN,
       UserRole.INVENTORY_MANAGER,
@@ -86,139 +80,113 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          message: "You are not authorized to update products",
+          message:
+            "You are not authorized to update products",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    // Get product ID
     const { id } = await context.params;
 
-    // Read request body
     const body = await request.json();
 
-    // Validate request body
-    const validation = updateProductSchema.safeParse(body);
+    const validation =
+      updateProductSchema.safeParse(body);
 
     if (!validation.success) {
       return NextResponse.json(
         {
           success: false,
           message: "Validation failed",
-          errors: validation.error.flatten().fieldErrors,
+          errors:
+            validation.error.flatten().fieldErrors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const data = validation.data;
+    const product = await updateProduct(
+      id,
+      validation.data,
+    );
 
-    // Check if product exists
-    const existingProduct = await prisma.product.findUnique({
-      where: {
-        id,
-      },
-    });
-
-    if (!existingProduct) {
+    if (!product) {
       return NextResponse.json(
         {
           success: false,
           message: "Product not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
-
-    // Check duplicate SKU
-    if (data.sku && data.sku !== existingProduct.sku) {
-      const duplicateSku = await prisma.product.findFirst({
-        where: {
-          sku: data.sku,
-          NOT: {
-            id,
-          },
-        },
-      });
-
-      if (duplicateSku) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Another product already uses this SKU",
-          },
-          { status: 409 }
-        );
-      }
-    }
-
-    // Update product
-    const updatedProduct = await prisma.product.update({
-      where: {
-        id,
-      },
-      data,
-      include: {
-        category: true,
-        supplier: true,
-        inventory: true,
-        batches: true,
-      },
-    });
 
     return NextResponse.json({
       success: true,
       message: "Product updated successfully",
-      product: updatedProduct,
+      product,
     });
   } catch (error) {
-  console.error("PUT /api/products/[id] error:", error);
+    console.error(
+      "PUT /api/products/[id] error:",
+      error,
+    );
 
-  // Unique constraint violation
-  if (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === "P2002"
-  ) {
+    if (
+      error instanceof Error &&
+      error.message.includes(
+        "already uses this SKU",
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+        },
+        { status: 409 },
+      );
+    }
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError
+    ) {
+      if (error.code === "P2002") {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Product with this SKU or barcode already exists",
+          },
+          { status: 409 },
+        );
+      }
+
+      if (error.code === "P2003") {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Invalid category or supplier",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     return NextResponse.json(
       {
         success: false,
-        message: "Product with this SKU or barcode already exists",
+        message: "Failed to update product",
       },
-      { status: 409 }
+      { status: 500 },
     );
   }
-
-  // Foreign key constraint violation
-  if (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === "P2003"
-  ) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Invalid category or supplier",
-      },
-      { status: 400 }
-    );
-  }
-
-  return NextResponse.json(
-    {
-      success: false,
-      message: "Failed to update product",
-    },
-    { status: 500 }
-  );
-}
 }
 
 export async function DELETE(
   request: Request,
-  context: RouteContext
+  context: RouteContext,
 ) {
   try {
-    // Check authentication
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
@@ -227,11 +195,10 @@ export async function DELETE(
           success: false,
           message: "Not authenticated",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // Only ADMIN can delete products
     const allowed = hasRole(currentUser.role, [
       UserRole.ADMIN,
     ]);
@@ -240,53 +207,26 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          message: "You are not authorized to delete products",
+          message:
+            "You are not authorized to delete products",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const { id } = await context.params;
 
-    const existingProduct = await prisma.product.findUnique({
-      where: {
-        id,
-      },
-      include: {
-        inventory: true,
-        batches: true,
-      },
-    });
+    const deleted = await deleteProduct(id);
 
-    if (!existingProduct) {
+    if (!deleted) {
       return NextResponse.json(
         {
           success: false,
           message: "Product not found",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
-
-    if (
-      existingProduct.inventory ||
-      existingProduct.batches.length > 0
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Cannot delete a product that has inventory or batches",
-        },
-        { status: 409 }
-      );
-    }
-
-    await prisma.product.delete({
-      where: {
-        id,
-      },
-    });
 
     return NextResponse.json({
       success: true,
@@ -295,15 +235,30 @@ export async function DELETE(
   } catch (error) {
     console.error(
       "DELETE /api/products/[id] error:",
-      error
+      error,
     );
+
+    if (
+      error instanceof Error &&
+      error.message.includes(
+        "inventory or batches",
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+        },
+        { status: 409 },
+      );
+    }
 
     return NextResponse.json(
       {
         success: false,
         message: "Failed to delete product",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

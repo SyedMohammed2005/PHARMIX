@@ -1,124 +1,87 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { createProductSchema } from "@/lib/validations/product";
 import { UserRole } from "@/src/generated/prisma/client";
 import { getCurrentUser, hasRole } from "@/lib/authorization";
+import {
+  getProducts,
+  createProduct,
+} from "@/services/product.service";
 
 export async function GET(request: Request) {
-  
   try {
     const currentUser = await getCurrentUser();
 
-if (!currentUser) {
-  return NextResponse.json(
-    {
-      success: false,
-      message: "Not authenticated",
-    },
-    { status: 401 }
-  );
-}
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Not authenticated",
+        },
+        { status: 401 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
 
-    const search = searchParams.get("search");
-    const categoryId = searchParams.get("categoryId");
-    const supplierId = searchParams.get("supplierId");
-    const page = Math.max(Number(searchParams.get("page")) || 1, 1);
+    const search = searchParams.get("search") || undefined;
+    const categoryId =
+      searchParams.get("categoryId") || undefined;
+    const supplierId =
+      searchParams.get("supplierId") || undefined;
+
+    const page = Math.max(
+      Number(searchParams.get("page")) || 1,
+      1,
+    );
 
     const limit = Math.min(
-      Math.max(Number(searchParams.get("limit")) || 10, 1),
+      Math.max(
+        Number(searchParams.get("limit")) || 10,
+        1,
+      ),
       100,
     );
 
-    const skip = (page - 1) * limit;
+    const sortBy =
+      searchParams.get("sortBy") || "createdAt";
 
-    const sortBy = searchParams.get("sortBy") || "createdAt";
-    const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc";
+    const sortOrder =
+      searchParams.get("sortOrder") === "asc"
+        ? "asc"
+        : "desc";
 
-    const allowedSortFields = [
-      "name",
-      "sellingPrice",
-      "purchasePrice",
-      "mrp",
-      "createdAt",
-    ];
+    const result = await getProducts({
+      search,
+      categoryId,
+      supplierId,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
 
-    const validSortBy = allowedSortFields.includes(sortBy)
-      ? sortBy
-      : "createdAt";
-      const where = {
-  ...(search
-    ? {
-        OR: [
-          {
-            name: {
-              contains: search,
-              mode: "insensitive" as const,
-            },
-          },
-          {
-            genericName: {
-              contains: search,
-              mode: "insensitive" as const,
-            },
-          },
-          {
-            brand: {
-              contains: search,
-              mode: "insensitive" as const,
-            },
-          },
-          {
-            sku: {
-              contains: search,
-              mode: "insensitive" as const,
-            },
-          },
-        ],
-      }
-    : {}),
+    return NextResponse.json({
+      success: true,
+      count: result.products.length,
 
-  ...(categoryId ? { categoryId } : {}),
+      pagination: {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: result.totalPages,
+        hasNextPage:
+          result.page < result.totalPages,
+        hasPreviousPage:
+          result.page > 1,
+      },
 
-  ...(supplierId ? { supplierId } : {}),
-};
-const total = await prisma.product.count({
-  where,
-});
-const products = await prisma.product.findMany({
-  where,
-
-  include: {
-    category: true,
-    supplier: true,
-    inventory: true,
-  },
-
-  orderBy: {
-    [validSortBy]: sortOrder,
-  },
-
-  skip,
-  take: limit,
-});
-
-   return NextResponse.json({
-  success: true,
-  count: products.length,
-
-  pagination: {
-    page,
-    limit,
-    total,
-    totalPages: Math.ceil(total / limit),
-    hasNextPage: page < Math.ceil(total / limit),
-    hasPreviousPage: page > 1,
-  },
-
-  products,
-});
+      products: result.products,
+    });
   } catch (error) {
-    console.error("GET /api/products error:", error);
+    console.error(
+      "GET /api/products error:",
+      error,
+    );
 
     return NextResponse.json(
       {
@@ -132,7 +95,6 @@ const products = await prisma.product.findMany({
 
 export async function POST(request: Request) {
   try {
-    // Check authentication
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
@@ -141,11 +103,10 @@ export async function POST(request: Request) {
           success: false,
           message: "Not authenticated",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // Check authorization
     const allowed = hasRole(currentUser.role, [
       UserRole.ADMIN,
       UserRole.INVENTORY_MANAGER,
@@ -155,75 +116,33 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "You are not authorized to create products",
+          message:
+            "You are not authorized to create products",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    // Existing product creation logic
     const body = await request.json();
 
-    const validation = createProductSchema.safeParse(body);
+    const validation =
+      createProductSchema.safeParse(body);
 
     if (!validation.success) {
       return NextResponse.json(
         {
           success: false,
           message: "Validation failed",
-          errors: validation.error.flatten().fieldErrors,
+          errors:
+            validation.error.flatten().fieldErrors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const data = validation.data;
-
-    const existingProduct = await prisma.product.findFirst({
-      where: {
-        OR: [
-          { sku: data.sku },
-          ...(data.barcode ? [{ barcode: data.barcode }] : []),
-        ],
-      },
-    });
-
-    if (existingProduct) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Product with this SKU or barcode already exists",
-        },
-        { status: 409 }
-      );
-    }
-
-    const product = await prisma.product.create({
-      data: {
-        name: data.name,
-        genericName: data.genericName,
-        brand: data.brand,
-        sku: data.sku,
-        barcode: data.barcode,
-
-        purchasePrice: data.purchasePrice,
-        sellingPrice: data.sellingPrice,
-        mrp: data.mrp,
-
-        gst: data.gst,
-        requiresPrescription: data.requiresPrescription,
-
-        categoryId: data.categoryId,
-        supplierId: data.supplierId,
-      },
-
-      include: {
-        category: true,
-        supplier: true,
-        inventory: true,
-        batches: true,
-      },
-    });
+    const product = await createProduct(
+      validation.data,
+    );
 
     return NextResponse.json(
       {
@@ -231,17 +150,35 @@ export async function POST(request: Request) {
         message: "Product created successfully",
         product,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
-    console.error("POST /api/products error:", error);
+    console.error(
+      "POST /api/products error:",
+      error,
+    );
+
+    if (
+      error instanceof Error &&
+      error.message.includes(
+        "SKU or barcode already exists",
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+        },
+        { status: 409 },
+      );
+    }
 
     return NextResponse.json(
       {
         success: false,
         message: "Failed to create product",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

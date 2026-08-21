@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hasRole } from "@/lib/authorization";
+import { getSales } from "@/services/sales.service";
+import { createSale } from "@/services/sales.service";
 import {
   PaymentMethod,
   PaymentStatus,
@@ -117,32 +119,11 @@ export async function GET(request: Request) {
     }
 
     // 5. Get sales + total count
-    const [sales, total] = await Promise.all([
-      prisma.sale.findMany({
-        where,
-        include: {
-          customer: true,
-          items: {
-            include: {
-              product: true,
-              batch: true,
-            },
-          },
-          payment: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        skip,
-        take: limit,
-      }),
-
-      prisma.sale.count({
-        where,
-      }),
-    ]);
-
-    const totalPages = Math.ceil(total / limit);
+    const { sales, total, totalPages } = await getSales({
+  customerId: customerId ?? undefined,
+  page,
+  limit,
+});
 
     // 6. Return response
     return NextResponse.json({
@@ -219,246 +200,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = validation.data;
+    // 5. Create sale through service
+    const result = await createSale(validation.data);
 
-    // 5. Check customer if provided
-    if (data.customerId) {
-      const customer = await prisma.customer.findUnique({
-        where: {
-          id: data.customerId,
-        },
-      });
-
-      if (!customer) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Customer not found",
-          },
-          { status: 404 }
-        );
-      }
-    }
-
-    // 6. Prevent duplicate products/batches in same sale
-    const itemKeys = data.items.map(
-      (item) => `${item.productId}-${item.batchId}`
-    );
-
-    if (new Set(itemKeys).size !== itemKeys.length) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Duplicate product and batch found in sale items",
-        },
-        { status: 400 }
-      );
-    }
-
-    // 7. Load and validate all batches before transaction
-   const validatedItems: ValidatedItem[] = [];
-
-    for (const item of data.items) {
-      const batch = await prisma.batch.findUnique({
-        where: {
-          id: item.batchId,
-        },
-        include: {
-          product: {
-            include: {
-              inventory: true,
-            },
-          },
-        },
-      });
-
-      if (!batch) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: `Batch not found: ${item.batchId}`,
-          },
-          { status: 404 }
-        );
-      }
-
-      // Batch must belong to selected product
-      if (batch.productId !== item.productId) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: `Batch does not belong to product: ${item.productId}`,
-          },
-          { status: 400 }
-        );
-      }
-
-      // Expiry check
-      const today = new Date();
-
-      if (batch.expiryDate < today) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: `Batch ${batch.batchNumber} is expired`,
-          },
-          { status: 400 }
-        );
-      }
-
-      // Batch stock check
-      if (batch.quantity < item.quantity) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: `Insufficient batch stock for ${batch.product.name}`,
-          },
-          { status: 400 }
-        );
-      }
-
-      // Product inventory must exist
-      if (!batch.product.inventory) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: `Inventory not found for ${batch.product.name}`,
-          },
-          { status: 404 }
-        );
-      }
-
-      validatedItems.push({
-        item,
-        batch,
-      });
-    }
-
-    // 8. Calculate totals
-    let subtotal = 0;
-    let tax = 0;
-
-    const saleItemsData = validatedItems.map(({ item, batch }) => {
-      const unitPrice = batch.sellingPrice;
-
-      const itemSubtotal = unitPrice * item.quantity;
-
-      const itemTax =
-        itemSubtotal * (batch.product.gst / 100);
-
-      subtotal += itemSubtotal;
-      tax += itemTax;
-
-      return {
-        productId: item.productId,
-        batchId: item.batchId,
-        quantity: item.quantity,
-        unitPrice,
-        gst: batch.product.gst,
-        subtotal: itemSubtotal,
-      };
-    });
-
-    const totalAmount =
-      subtotal + tax - data.discount;
-
-    if (totalAmount < 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Discount cannot be greater than sale amount",
-        },
-        { status: 400 }
-      );
-    }
-
-    // 9. Generate invoice number
-    const invoiceNumber = `INV-${Date.now()}`;
-
-    // 10. Atomic database transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Create Sale
-      const sale = await tx.sale.create({
-        data: {
-          invoiceNumber,
-          customerId: data.customerId,
-          subtotal,
-          discount: data.discount,
-          tax,
-          totalAmount,
-        },
-      });
-
-      // Create Sale Items + update stock
-      for (const {
-        item,
-        batch,
-      } of validatedItems) {
-        await tx.saleItem.create({
-          data: {
-            saleId: sale.id,
-            productId: item.productId,
-            batchId: item.batchId,
-            quantity: item.quantity,
-            unitPrice: batch.sellingPrice,
-            gst: batch.product.gst,
-            subtotal:
-              batch.sellingPrice * item.quantity,
-          },
-        });
-
-        // Reduce batch stock
-        await tx.batch.update({
-          where: {
-            id: item.batchId,
-          },
-          data: {
-            quantity: {
-              decrement: item.quantity,
-            },
-          },
-        });
-
-        // Reduce inventory stock
-        await tx.inventory.update({
-          where: {
-            id: batch.product.inventory!.id,
-          },
-          data: {
-            quantity: {
-              decrement: item.quantity,
-            },
-          },
-        });
-
-        // Create stock transaction
-        await tx.stockTransaction.create({
-          data: {
-            inventoryId: batch.product.inventory!.id,
-            type: StockTransactionType.SALE,
-            quantity: item.quantity,
-            reason: `Sale ${invoiceNumber}`,
-          },
-        });
-      }
-
-      // Create payment
-      const payment = await tx.payment.create({
-        data: {
-          saleId: sale.id,
-          amount: totalAmount,
-          method: data.paymentMethod,
-          status: PaymentStatus.COMPLETED,
-        },
-      });
-
-      return {
-        sale,
-        payment,
-      };
-    });
-
-    // 11. Return response
+    // 6. Return response
     return NextResponse.json(
       {
         success: true,
@@ -469,6 +214,41 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error("POST /api/sales error:", error);
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to create sale";
+
+    // Business validation errors
+    const validationMessages = [
+      "Customer not found",
+      "Duplicate product and batch found in sale items",
+      "Batch not found",
+      "Batch does not belong to product",
+      "is expired",
+      "Insufficient batch stock",
+      "Inventory not found",
+      "Discount cannot be greater than sale amount",
+    ];
+
+    const isValidationError = validationMessages.some(
+      (item) => message.includes(item)
+    );
+
+    if (isValidationError) {
+      const status = message.includes("not found")
+        ? 404
+        : 400;
+
+      return NextResponse.json(
+        {
+          success: false,
+          message,
+        },
+        { status }
+      );
+    }
 
     return NextResponse.json(
       {

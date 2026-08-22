@@ -1,62 +1,41 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser, hasRole } from "@/lib/authorization";
-import { getSales } from "@/services/sales.service";
-import { createSale } from "@/services/sales.service";
 import {
   PaymentMethod,
-  PaymentStatus,
-  Prisma,
-  StockTransactionType,
   UserRole,
 } from "@/src/generated/prisma/client";
+import {
+  getCurrentUser,
+  hasRole,
+} from "@/lib/authorization";
+import {
+  getSales,
+  createSale,
+} from "@/services/sales.service";
 
 const saleItemSchema = z.object({
   productId: z.string().min(1, "Product ID is required"),
   batchId: z.string().min(1, "Batch ID is required"),
-  quantity: z.number().int().positive("Quantity must be greater than 0"),
+  quantity: z
+    .number()
+    .int()
+    .positive("Quantity must be greater than 0"),
 });
 
 const createSaleSchema = z.object({
   customerId: z.string().optional(),
-  items: z.array(saleItemSchema).min(1, "At least one item is required"),
+
+  items: z
+    .array(saleItemSchema)
+    .min(1, "At least one item is required"),
+
   discount: z
     .number()
     .min(0, "Discount cannot be negative")
     .default(0),
+
   paymentMethod: z.nativeEnum(PaymentMethod),
 });
-
-type ValidatedItem = {
-  item: z.infer<typeof saleItemSchema>;
-  batch: {
-    id: string;
-    batchNumber: string;
-    productId: string;
-    manufactureDate: Date;
-    expiryDate: Date;
-    quantity: number;
-    purchasePrice: number;
-    sellingPrice: number;
-    createdAt: Date;
-    updatedAt: Date;
-    product: {
-      id: string;
-      gst: number;
-      inventory: {
-        id: string;
-        productId: string;
-        quantity: number;
-        minimumStock: number;
-        maximumStock: number | null;
-        reorderPoint: number;
-        createdAt: Date;
-        updatedAt: Date;
-      } | null;
-    };
-  };
-};
 
 export async function GET(request: Request) {
   try {
@@ -94,7 +73,8 @@ export async function GET(request: Request) {
     // 3. Read query parameters
     const { searchParams } = new URL(request.url);
 
-    const customerId = searchParams.get("customerId");
+    const customerId =
+      searchParams.get("customerId") || undefined;
 
     const page = Math.max(
       Number(searchParams.get("page")) || 1,
@@ -109,38 +89,34 @@ export async function GET(request: Request) {
       100
     );
 
-    const skip = (page - 1) * limit;
+    // 4. Get sales from service
+    const result = await getSales({
+      customerId,
+      page,
+      limit,
+    });
 
-    // 4. Build filter
-    const where: Prisma.SaleWhereInput = {};
-
-    if (customerId) {
-      where.customerId = customerId;
-    }
-
-    // 5. Get sales + total count
-    const { sales, total, totalPages } = await getSales({
-  customerId: customerId ?? undefined,
-  page,
-  limit,
-});
-
-    // 6. Return response
+    // 5. Return response
     return NextResponse.json({
       success: true,
-      count: sales.length,
+      count: result.sales.length,
+
       pagination: {
         page,
         limit,
-        total,
-        totalPages,
-        hasNextPage: page < totalPages,
+        total: result.total,
+        totalPages: result.totalPages,
+        hasNextPage: page < result.totalPages,
         hasPreviousPage: page > 1,
       },
-      sales,
+
+      sales: result.sales,
     });
   } catch (error) {
-    console.error("GET /api/sales error:", error);
+    console.error(
+      "GET /api/sales error:",
+      error
+    );
 
     return NextResponse.json(
       {
@@ -187,21 +163,30 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     // 4. Validate request
-    const validation = createSaleSchema.safeParse(body);
+    const validation =
+      createSaleSchema.safeParse(body);
 
     if (!validation.success) {
       return NextResponse.json(
         {
           success: false,
           message: "Validation failed",
-          errors: validation.error.flatten().fieldErrors,
+          errors:
+            validation.error.flatten().fieldErrors,
         },
         { status: 400 }
       );
     }
 
+    const data = validation.data;
+
     // 5. Create sale through service
-    const result = await createSale(validation.data);
+    const result = await createSale({
+      customerId: data.customerId,
+      items: data.items,
+      discount: data.discount,
+      paymentMethod: data.paymentMethod,
+    });
 
     // 6. Return response
     return NextResponse.json(
@@ -213,40 +198,52 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("POST /api/sales error:", error);
+    console.error(
+      "POST /api/sales error:",
+      error
+    );
 
     const message =
       error instanceof Error
         ? error.message
         : "Failed to create sale";
 
-    // Business validation errors
-    const validationMessages = [
-      "Customer not found",
-      "Duplicate product and batch found in sale items",
-      "Batch not found",
-      "Batch does not belong to product",
-      "is expired",
-      "Insufficient batch stock",
-      "Inventory not found",
-      "Discount cannot be greater than sale amount",
-    ];
-
-    const isValidationError = validationMessages.some(
-      (item) => message.includes(item)
-    );
-
-    if (isValidationError) {
-      const status = message.includes("not found")
-        ? 404
-        : 400;
-
+    // Known business errors
+    if (
+      message === "Customer not found" ||
+      message.startsWith("Batch not found") ||
+      message.startsWith("Inventory not found")
+    ) {
       return NextResponse.json(
         {
           success: false,
           message,
         },
-        { status }
+        { status: 404 }
+      );
+    }
+
+    if (
+      message.startsWith(
+        "Duplicate product and batch"
+      ) ||
+      message.startsWith(
+        "Batch does not belong to product"
+      ) ||
+      message.startsWith("Batch") ||
+      message.startsWith(
+        "Insufficient batch stock"
+      ) ||
+      message.startsWith(
+        "Discount cannot be greater"
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message,
+        },
+        { status: 400 }
       );
     }
 

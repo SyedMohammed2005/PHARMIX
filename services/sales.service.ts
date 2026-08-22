@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import {
+  PaymentMethod,
   PaymentStatus,
   Prisma,
   StockTransactionType,
@@ -64,6 +65,7 @@ type ValidatedSaleItem = {
     batchId: string;
     quantity: number;
   };
+
   batch: Prisma.BatchGetPayload<{
     include: {
       product: {
@@ -77,13 +79,15 @@ type ValidatedSaleItem = {
 
 type CreateSaleParams = {
   customerId?: string;
+
   items: {
     productId: string;
     batchId: string;
     quantity: number;
   }[];
+
   discount: number;
-  paymentMethod: Prisma.PaymentCreateInput["method"];
+  paymentMethod: PaymentMethod;
 };
 
 export async function createSale({
@@ -117,7 +121,7 @@ export async function createSale({
   }
 
   // 3. Validate batches
- const validatedItems: ValidatedSaleItem[] = [];
+  const validatedItems: ValidatedSaleItem[] = [];
 
   for (const item of items) {
     const batch = await prisma.batch.findUnique({
@@ -143,6 +147,7 @@ export async function createSale({
       );
     }
 
+    // 4. Expiry check
     const today = new Date();
 
     if (batch.expiryDate < today) {
@@ -151,12 +156,14 @@ export async function createSale({
       );
     }
 
+    // 5. Batch stock check
     if (batch.quantity < item.quantity) {
       throw new Error(
         `Insufficient batch stock for ${batch.product.name}`
       );
     }
 
+    // 6. Inventory check
     if (!batch.product.inventory) {
       throw new Error(
         `Inventory not found for ${batch.product.name}`
@@ -169,7 +176,7 @@ export async function createSale({
     });
   }
 
-  // 4. Calculate totals
+  // 7. Calculate totals
   let subtotal = 0;
   let tax = 0;
 
@@ -193,10 +200,10 @@ export async function createSale({
     );
   }
 
-  // 5. Generate invoice
+  // 8. Generate invoice number
   const invoiceNumber = `INV-${Date.now()}`;
 
-  // 6. Atomic transaction
+  // 9. Atomic transaction
   return await prisma.$transaction(async (tx) => {
     const sale = await tx.sale.create({
       data: {
@@ -209,6 +216,7 @@ export async function createSale({
       },
     });
 
+    // 10. Create sale items and update stock
     for (const { item, batch } of validatedItems) {
       await tx.saleItem.create({
         data: {
@@ -223,6 +231,7 @@ export async function createSale({
         },
       });
 
+      // Reduce batch stock
       await tx.batch.update({
         where: {
           id: item.batchId,
@@ -234,6 +243,7 @@ export async function createSale({
         },
       });
 
+      // Reduce inventory stock
       await tx.inventory.update({
         where: {
           id: batch.product.inventory!.id,
@@ -245,6 +255,7 @@ export async function createSale({
         },
       });
 
+      // Record stock transaction
       await tx.stockTransaction.create({
         data: {
           inventoryId: batch.product.inventory!.id,
@@ -255,6 +266,7 @@ export async function createSale({
       });
     }
 
+    // 11. Create payment
     const payment = await tx.payment.create({
       data: {
         saleId: sale.id,

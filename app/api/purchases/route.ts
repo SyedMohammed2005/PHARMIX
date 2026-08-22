@@ -343,6 +343,20 @@ const startDate = searchParams.get("startDate")?.trim() || "";
 const endDate = searchParams.get("endDate")?.trim() || "";
 const paymentMethod =
   searchParams.get("paymentMethod")?.trim().toUpperCase() || "";
+  const validPaymentMethods = Object.values(PaymentMethod);
+
+if (
+  paymentMethod &&
+  !validPaymentMethods.includes(paymentMethod as PaymentMethod)
+) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Invalid payment method",
+    },
+    { status: 400 },
+  );
+}
 
 const requestedSort = searchParams.get("sortBy") || "createdAt";
 

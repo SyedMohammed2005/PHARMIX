@@ -1,70 +1,40 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { verifyToken } from "@/lib/jwt";
 import { getCurrentUser } from "@/lib/authorization";
+import { successResponse, errorResponse } from "@/lib/utils";
 
 export async function GET() {
   try {
+    // 1. Authentication
     const currentUser = await getCurrentUser();
 
-if (!currentUser) {
-  return NextResponse.json(
-    {
-      success: false,
-      message: "Not authenticated",
-    },
-    { status: 401 }
-  );
-}
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Not authenticated",
-        },
-        { status: 401 }
-      );
+    if (!currentUser) {
+      return errorResponse("Not authenticated", 401);
     }
 
-    const payload = await verifyToken(token);
-
-    const userId = payload.userId as string;
-
+    // 2. Get current user from database
     const user = await prisma.user.findUnique({
       where: {
-        id: userId,
+        id: currentUser.userId,
       },
     });
 
     if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "User not found",
-        },
-        { status: 404 }
-      );
+      return errorResponse("User not found", 404);
     }
 
+    // 3. Remove password before sending response
     const { password: _, ...safeUser } = user;
 
-    return NextResponse.json({
-      success: true,
+    // 4. Success response
+    return successResponse({
       user: safeUser,
     });
   } catch (error) {
     console.error("GET /api/auth/me error:", error);
 
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Invalid or expired authentication",
-      },
-      { status: 401 }
+    return errorResponse(
+      "Failed to fetch current user",
+      500
     );
   }
 }

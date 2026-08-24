@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { UserRole } from "@/src/generated/prisma/client";
 import { getCurrentUser, hasRole } from "@/lib/authorization";
+import { UserRole } from "@/src/generated/prisma/client";
+import { createSupplierSchema } from "@/lib/validations/supplier";
+import {
+  getSuppliers,
+  createSupplier,
+} from "@/services/supplier.service";
+
 export async function GET() {
   try {
     const currentUser = await getCurrentUser();
@@ -15,14 +20,25 @@ export async function GET() {
         { status: 401 },
       );
     }
-    const suppliers = await prisma.supplier.findMany({
-      include: {
-        products: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+
+    const allowed = hasRole(currentUser.role, [
+      UserRole.ADMIN,
+      UserRole.PHARMACIST,
+      UserRole.INVENTORY_MANAGER,
+      UserRole.BUSINESS_ANALYST,
+    ]);
+
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You are not authorized to view suppliers",
+        },
+        { status: 403 },
+      );
+    }
+
+    const suppliers = await getSuppliers();
 
     return NextResponse.json({
       success: true,
@@ -41,8 +57,6 @@ export async function GET() {
     );
   }
 }
-
-import { createSupplierSchema } from "@/lib/validations/supplier";
 
 export async function POST(request: Request) {
   try {
@@ -72,6 +86,7 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+
     const body = await request.json();
 
     const validation = createSupplierSchema.safeParse(body);
@@ -87,16 +102,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = validation.data;
+    try {
+      const supplier = await createSupplier(validation.data);
 
-    if (data.email) {
-      const existingSupplier = await prisma.supplier.findUnique({
-        where: {
-          email: data.email,
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Supplier created successfully",
+          supplier,
         },
-      });
-
-      if (existingSupplier) {
+        { status: 201 },
+      );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "SUPPLIER_EMAIL_EXISTS"
+      ) {
         return NextResponse.json(
           {
             success: false,
@@ -105,20 +126,9 @@ export async function POST(request: Request) {
           { status: 409 },
         );
       }
+
+      throw error;
     }
-
-    const supplier = await prisma.supplier.create({
-      data,
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Supplier created successfully",
-        supplier,
-      },
-      { status: 201 },
-    );
   } catch (error) {
     console.error("POST /api/suppliers error:", error);
 

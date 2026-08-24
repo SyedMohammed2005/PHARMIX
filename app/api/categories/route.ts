@@ -1,99 +1,63 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { createCategorySchema } from "@/lib/validations/category";
-import { UserRole } from "@/src/generated/prisma/client";
+import { z } from "zod";
 import { getCurrentUser, hasRole } from "@/lib/authorization";
+import { UserRole } from "@/src/generated/prisma/client";
+import {
+  getCategories,
+  createCategory,
+} from "@/services/category.service";
 
-export async function GET(request: Request) {
+const createCategorySchema = z.object({
+  name: z.string().min(1, "Category name is required"),
+});
+
+export async function GET() {
   try {
     const currentUser = await getCurrentUser();
 
-if (!currentUser) {
-  return NextResponse.json(
-    {
-      success: false,
-      message: "Not authenticated",
-    },
-    { status: 401 }
-  );
-}
-    const { searchParams } = new URL(request.url);
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Not authenticated",
+        },
+        { status: 401 },
+      );
+    }
 
-    const search = searchParams.get("search");
-    const categoryId = searchParams.get("categoryId");
-    const supplierId = searchParams.get("supplierId");
+    const allowed = hasRole(currentUser.role, [
+      UserRole.ADMIN,
+      UserRole.PHARMACIST,
+      UserRole.INVENTORY_MANAGER,
+      UserRole.BUSINESS_ANALYST,
+    ]);
 
-    const products = await prisma.product.findMany({
-      where: {
-        ...(search
-          ? {
-              OR: [
-                {
-                  name: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
-                },
-                {
-                  genericName: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
-                },
-                {
-                  brand: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
-                },
-                {
-                  sku: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
-                },
-              ],
-            }
-          : {}),
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You are not authorized to view categories",
+        },
+        { status: 403 },
+      );
+    }
 
-        ...(categoryId
-          ? {
-              categoryId,
-            }
-          : {}),
-
-        ...(supplierId
-          ? {
-              supplierId,
-            }
-          : {}),
-      },
-
-      include: {
-        category: true,
-        supplier: true,
-        inventory: true,
-      },
-
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const categories = await getCategories();
 
     return NextResponse.json({
       success: true,
-      count: products.length,
-      products,
+      count: categories.length,
+      categories,
     });
   } catch (error) {
-    console.error("GET /api/products error:", error);
+    console.error("GET /api/categories error:", error);
 
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to fetch products",
+        message: "Failed to fetch categories",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -102,30 +66,30 @@ export async function POST(request: Request) {
   try {
     const currentUser = await getCurrentUser();
 
-if (!currentUser) {
-  return NextResponse.json(
-    {
-      success: false,
-      message: "Not authenticated",
-    },
-    { status: 401 }
-  );
-}
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Not authenticated",
+        },
+        { status: 401 },
+      );
+    }
 
-const allowed = hasRole(currentUser.role, [
-  UserRole.ADMIN,
-  UserRole.INVENTORY_MANAGER,
-]);
+    const allowed = hasRole(currentUser.role, [
+      UserRole.ADMIN,
+    ]);
 
-if (!allowed) {
-  return NextResponse.json(
-    {
-      success: false,
-      message: "You are not authorized to create categories",
-    },
-    { status: 403 }
-  );
-}
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You are not authorized to create categories",
+        },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
 
     const validation = createCategorySchema.safeParse(body);
@@ -137,38 +101,34 @@ if (!allowed) {
           message: "Validation failed",
           errors: validation.error.flatten().fieldErrors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const existingCategory = await prisma.category.findUnique({
-      where: {
-        name: validation.data.name,
-      },
-    });
+    try {
+      const category = await createCategory(validation.data);
 
-    if (existingCategory) {
       return NextResponse.json(
         {
-          success: false,
-          message: "Category already exists",
+          success: true,
+          message: "Category created successfully",
+          category,
         },
-        { status: 409 }
+        { status: 201 },
       );
+    } catch (error) {
+      if (error instanceof Error && error.message === "CATEGORY_EXISTS") {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Category with this name already exists",
+          },
+          { status: 409 },
+        );
+      }
+
+      throw error;
     }
-
-    const category = await prisma.category.create({
-      data: validation.data,
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Category created successfully",
-        category,
-      },
-      { status: 201 }
-    );
   } catch (error) {
     console.error("POST /api/categories error:", error);
 
@@ -177,7 +137,7 @@ if (!allowed) {
         success: false,
         message: "Failed to create category",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser, hasRole } from "@/lib/authorization";
+import {
+  getCurrentUser,
+  hasRole,
+} from "@/lib/authorization";
 import { UserRole } from "@/src/generated/prisma/client";
+import { getPaymentAnalytics } from "@/services/analytics.service";
 
 export async function GET() {
   try {
-    // 1. Authentication
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
@@ -14,11 +16,10 @@ export async function GET() {
           success: false,
           message: "Not authenticated",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // 2. Authorization
     const allowed = hasRole(currentUser.role, [
       UserRole.ADMIN,
       UserRole.BUSINESS_ANALYST,
@@ -30,61 +31,20 @@ export async function GET() {
           success: false,
           message: "You are not authorized to view payment analytics",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    // 3. Group payments by method
-    const paymentBreakdown = await prisma.payment.groupBy({
-      by: ["method"],
-      _count: {
-        id: true,
-      },
-      _sum: {
-        amount: true,
-        refundedAmount: true,
-      },
-    });
+    const paymentAnalytics = await getPaymentAnalytics();
 
-    // 4. Calculate overall totals
-    const totals = await prisma.payment.aggregate({
-      _count: {
-        id: true,
-      },
-      _sum: {
-        amount: true,
-        refundedAmount: true,
-      },
-    });
-
-    // 5. Format payment data
-    const payments = paymentBreakdown.map((payment) => ({
-      method: payment.method,
-      transactionCount: payment._count.id,
-      totalAmount: payment._sum.amount ?? 0,
-      refundedAmount: payment._sum.refundedAmount ?? 0,
-      netAmount:
-        (payment._sum.amount ?? 0) -
-        (payment._sum.refundedAmount ?? 0),
-    }));
-
-    // 6. Response
     return NextResponse.json({
       success: true,
-      summary: {
-        totalTransactions: totals._count.id,
-        totalAmount: totals._sum.amount ?? 0,
-        totalRefundedAmount: totals._sum.refundedAmount ?? 0,
-        netAmount:
-          (totals._sum.amount ?? 0) -
-          (totals._sum.refundedAmount ?? 0),
-      },
-      payments,
+      ...paymentAnalytics,
     });
   } catch (error) {
     console.error(
       "GET /api/dashboard/payments error:",
-      error
+      error,
     );
 
     return NextResponse.json(
@@ -92,7 +52,7 @@ export async function GET() {
         success: false,
         message: "Failed to fetch payment analytics",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

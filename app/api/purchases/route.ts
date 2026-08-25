@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser, hasRole } from "@/lib/authorization";
 import {
   PaymentMethod,
-  PaymentStatus,
   UserRole,
 } from "@/src/generated/prisma/client";
+import { getCurrentUser, hasRole } from "@/lib/authorization";
+import {
+  createPurchase,
+  findSupplierById,
+  getPurchases,
+  validatePurchaseItems,
+} from "@/services/purchase.service";
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, "Product ID is required"),
@@ -18,14 +22,18 @@ const purchaseItemSchema = z.object({
 
 const createPurchaseSchema = z.object({
   supplierId: z.string().min(1, "Supplier ID is required"),
-  items: z.array(purchaseItemSchema).min(1, "At least one item is required"),
-  discount: z.number().min(0, "Discount cannot be negative").default(0),
+  items: z
+    .array(purchaseItemSchema)
+    .min(1, "At least one item is required"),
+  discount: z
+    .number()
+    .min(0, "Discount cannot be negative")
+    .default(0),
   paymentMethod: z.nativeEnum(PaymentMethod),
 });
 
 export async function POST(request: Request) {
   try {
-    // 1. Authentication
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
@@ -38,7 +46,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Authorization
     const allowed = hasRole(currentUser.role, [
       UserRole.ADMIN,
       UserRole.INVENTORY_MANAGER,
@@ -54,10 +61,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Read request body
     const body = await request.json();
 
-    // 4. Validate request
     const validation = createPurchaseSchema.safeParse(body);
 
     if (!validation.success) {
@@ -73,12 +78,7 @@ export async function POST(request: Request) {
 
     const data = validation.data;
 
-    // 5. Check supplier
-    const supplier = await prisma.supplier.findUnique({
-      where: {
-        id: data.supplierId,
-      },
-    });
+    const supplier = await findSupplierById(data.supplierId);
 
     if (!supplier) {
       return NextResponse.json(
@@ -90,7 +90,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Prevent duplicate product/batch combinations
     const itemKeys = data.items.map(
       (item) => `${item.productId}-${item.batchId}`,
     );
@@ -99,190 +98,55 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Duplicate product and batch found in purchase items",
+          message:
+            "Duplicate product and batch found in purchase items",
         },
         { status: 400 },
       );
     }
 
-    // 7. Validate products and batches
-    const validatedItems = [];
+    try {
+      await validatePurchaseItems(data.items);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Invalid purchase item";
 
-    for (const item of data.items) {
-      const product = await prisma.product.findUnique({
-        where: {
-          id: item.productId,
-        },
-      });
-
-      if (!product) {
+      if (message.startsWith("Product not found")) {
         return NextResponse.json(
           {
             success: false,
-            message: `Product not found: ${item.productId}`,
+            message,
           },
           { status: 404 },
         );
       }
 
-      const batch = await prisma.batch.findUnique({
-        where: {
-          id: item.batchId,
-        },
-      });
-
-      if (!batch) {
+      if (message.startsWith("Batch not found")) {
         return NextResponse.json(
           {
             success: false,
-            message: `Batch not found: ${item.batchId}`,
+            message,
           },
           { status: 404 },
         );
       }
 
-      // Batch must belong to selected product
-      if (batch.productId !== item.productId) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: `Batch does not belong to product: ${product.name}`,
-          },
-          { status: 400 },
-        );
-      }
-
-      validatedItems.push({
-        item,
-        product,
-        batch,
-      });
-    }
-
-    // 8. Calculate totals
-    let subtotal = 0;
-    let tax = 0;
-
-    const purchaseItemsData = validatedItems.map(({ item }) => {
-      const itemSubtotal = item.unitPrice * item.quantity;
-
-      const itemTax = itemSubtotal * (item.gst / 100);
-
-      subtotal += itemSubtotal;
-      tax += itemTax;
-
-      return {
-        productId: item.productId,
-        batchId: item.batchId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        gst: item.gst,
-        subtotal: itemSubtotal,
-      };
-    });
-
-    const totalAmount = subtotal + tax - data.discount;
-
-    if (totalAmount < 0) {
       return NextResponse.json(
         {
           success: false,
-          message: "Discount cannot be greater than purchase amount",
+          message,
         },
         { status: 400 },
       );
     }
 
-    // 9. Generate purchase number
-    const purchaseNumber = `PUR-${Date.now()}`;
-
-    // 10. Create purchase transaction
-    const purchase = await prisma.$transaction(async (tx) => {
-      // Create purchase
-      const createdPurchase = await tx.purchase.create({
-        data: {
-          purchaseNumber,
-          supplierId: data.supplierId,
-          subtotal,
-          discount: data.discount,
-          tax,
-          totalAmount,
-
-          items: {
-            create: purchaseItemsData,
-          },
-
-          payment: {
-            create: {
-              amount: totalAmount,
-              method: data.paymentMethod,
-              status: PaymentStatus.COMPLETED,
-            },
-          },
-        },
-
-        include: {
-          supplier: true,
-          items: {
-            include: {
-              product: true,
-              batch: true,
-            },
-          },
-          payment: true,
-        },
-      });
-
-      // Update inventory and batches
-      for (const item of data.items) {
-        // Increase batch quantity
-        await tx.batch.update({
-          where: {
-            id: item.batchId,
-          },
-          data: {
-            quantity: {
-              increment: item.quantity,
-            },
-            purchasePrice: item.unitPrice,
-          },
-        });
-
-        // Find inventory
-        const inventory = await tx.inventory.findUnique({
-          where: {
-            productId: item.productId,
-          },
-        });
-
-        if (!inventory) {
-          throw new Error(`Inventory not found for product: ${item.productId}`);
-        }
-
-        // Increase inventory quantity
-        await tx.inventory.update({
-          where: {
-            id: inventory.id,
-          },
-          data: {
-            quantity: {
-              increment: item.quantity,
-            },
-          },
-        });
-
-        // Record stock movement
-        await tx.stockTransaction.create({
-          data: {
-            inventoryId: inventory.id,
-            type: "PURCHASE",
-            quantity: item.quantity,
-            reason: `Purchase ${purchaseNumber}`,
-          },
-        });
-      }
-
-      return createdPurchase;
+    const purchase = await createPurchase({
+      supplierId: data.supplierId,
+      items: data.items,
+      discount: data.discount,
+      paymentMethod: data.paymentMethod,
     });
 
     return NextResponse.json(
@@ -337,144 +201,103 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
 
-const search = searchParams.get("search")?.trim() || "";
-const supplierId = searchParams.get("supplierId")?.trim() || "";
-const startDate = searchParams.get("startDate")?.trim() || "";
-const endDate = searchParams.get("endDate")?.trim() || "";
-const paymentMethod =
-  searchParams.get("paymentMethod")?.trim().toUpperCase() || "";
-  const validPaymentMethods = Object.values(PaymentMethod);
+    const search =
+      searchParams.get("search")?.trim() || "";
 
-if (
-  paymentMethod &&
-  !validPaymentMethods.includes(paymentMethod as PaymentMethod)
-) {
-  return NextResponse.json(
-    {
-      success: false,
-      message: "Invalid payment method",
-    },
-    { status: 400 },
-  );
-}
+    const supplierId =
+      searchParams.get("supplierId")?.trim() || "";
 
-const requestedSort = searchParams.get("sortBy") || "createdAt";
+    const startDate =
+      searchParams.get("startDate")?.trim() || "";
 
-const allowedSortFields = [
-  "createdAt",
-  "purchaseNumber",
-  "totalAmount",
-  "subtotal",
-];
+    const endDate =
+      searchParams.get("endDate")?.trim() || "";
 
-const sortBy = allowedSortFields.includes(requestedSort)
-  ? requestedSort
-  : "createdAt";
+    const paymentMethod =
+      searchParams
+        .get("paymentMethod")
+        ?.trim()
+        .toUpperCase() || "";
 
-const order = searchParams.get("order") === "asc" ? "asc" : "desc";
+    const validPaymentMethods =
+      Object.values(PaymentMethod);
 
-const page = Math.max(
-  Number(searchParams.get("page")) || 1,
-  1
-);
-
-const limit = Math.min(
-  Math.max(
-    Number(searchParams.get("limit")) || 10,
-    1
-  ),
-  100
-);
-
-const skip = (page - 1) * limit;
-
-const where = {
-  ...(search
-    ? {
-        OR: [
-          {
-            purchaseNumber: {
-              contains: search,
-              mode: "insensitive" as const,
-            },
-          },
-          {
-            supplier: {
-              name: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-          },
-        ],
-      }
-    : {}),
-
-  ...(supplierId
-    ? {
-        supplierId,
-      }
-    : {}),
-
-  ...(startDate || endDate
-    ? {
-        createdAt: {
-          ...(startDate
-            ? {
-                gte: new Date(`${startDate}T00:00:00.000Z`),
-              }
-            : {}),
-          ...(endDate
-            ? {
-                lte: new Date(`${endDate}T23:59:59.999Z`),
-              }
-            : {}),
+    if (
+      paymentMethod &&
+      !validPaymentMethods.includes(
+        paymentMethod as PaymentMethod,
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid payment method",
         },
-      }
-    : {}),
-    ...(paymentMethod
-  ? {
-      payment: {
-        method: paymentMethod as PaymentMethod,
-      },
+        { status: 400 },
+      );
     }
-  : {}),
-};
 
-const total = await prisma.purchase.count({
-  where,
-});
+    const requestedSort =
+      searchParams.get("sortBy") || "createdAt";
 
-const purchases = await prisma.purchase.findMany({
-  where,
-  skip,
-  take: limit,
-  orderBy: {
-    [sortBy]: order,
-  },
+    const allowedSortFields = [
+      "createdAt",
+      "purchaseNumber",
+      "totalAmount",
+      "subtotal",
+    ];
 
-      include: {
-        supplier: true,
-        items: {
-          include: {
-            product: true,
-            batch: true,
-          },
-        },
-        payment: true,
-      },
+    const sortBy = allowedSortFields.includes(
+      requestedSort,
+    )
+      ? requestedSort
+      : "createdAt";
+
+    const order =
+      searchParams.get("order") === "asc"
+        ? "asc"
+        : "desc";
+
+    const page = Math.max(
+      Number(searchParams.get("page")) || 1,
+      1,
+    );
+
+    const limit = Math.min(
+      Math.max(
+        Number(searchParams.get("limit")) || 10,
+        1,
+      ),
+      100,
+    );
+
+    const result = await getPurchases({
+      search,
+      supplierId,
+      startDate,
+      endDate,
+      paymentMethod: paymentMethod
+        ? (paymentMethod as PaymentMethod)
+        : undefined,
+      sortBy,
+      order,
+      page,
+      limit,
     });
+
     return NextResponse.json(
       {
         success: true,
-        count: purchases.length,
+        count: result.purchases.length,
         pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
+          page: result.page,
+          limit: result.limit,
+          total: result.total,
+          totalPages: Math.ceil(
+            result.total / result.limit,
+          ),
         },
-        purchases,
+        purchases: result.purchases,
       },
       { status: 200 },
     );

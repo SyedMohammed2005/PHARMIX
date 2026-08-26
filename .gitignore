@@ -41,3 +41,25 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# Node
+node_modules/
+.next/
+out/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Python virtual environment
+ml-service/venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db

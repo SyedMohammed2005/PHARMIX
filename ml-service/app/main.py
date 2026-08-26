@@ -1,7 +1,8 @@
 from app.model import train_model, load_model
+from app.evaluation import train_and_evaluate
+from app.metadata import create_model_metadata
 from fastapi import FastAPI
 from pydantic import BaseModel
-from app.evaluation import train_and_evaluate
 
 app = FastAPI(
     title="Pharmix ML Service",
@@ -72,7 +73,10 @@ def predict(request: PredictionRequest):
                 "predicted7DayDemand": predicted_7_day_demand,
                 "currentStock": request.current_stock,
                 "recommendation": recommendation,
-                "model": "XGBoost",
+                "model": {
+            "name": "XGBoost",
+            "version": "1.0.0",
+        },
             },
         }
 
@@ -82,44 +86,22 @@ def predict(request: PredictionRequest):
             "message": str(error),
         }
     # Temporary baseline prediction.
-    # XGBoost will replace this calculation once
-    # sufficient training data is available.
-
-    predicted_daily_demand = (
-        request.average_daily_demand_30
-    )
-
-    predicted_7_day_demand = round(
-        predicted_daily_demand * 7,
-        2,
-    )
-
-    if request.current_stock < predicted_7_day_demand:
-        recommendation = "RESTOCK_REQUIRED"
-    elif request.current_stock <= predicted_7_day_demand * 1.2:
-        recommendation = "LOW_STOCK_RISK"
-    else:
-        recommendation = "SUFFICIENT_STOCK"
-
-    return {
-        "success": True,
-        "prediction": {
-            "predictedDailyDemand": predicted_daily_demand,
-            "predicted7DayDemand": predicted_7_day_demand,
-            "currentStock": request.current_stock,
-            "recommendation": recommendation,
-        },
-    }
-
+   
 @app.post("/train")
 def train(training_data: list[dict]):
+
     try:
         model = train_model(training_data)
+
+        metadata = create_model_metadata(
+            training_records=len(training_data)
+        )
 
         return {
             "success": True,
             "message": "XGBoost model trained successfully",
             "trainingRecords": len(training_data),
+            "metadata": metadata,
         }
 
     except ValueError as error:
@@ -127,6 +109,7 @@ def train(training_data: list[dict]):
             "success": False,
             "message": str(error),
         }
+
 
 @app.post("/evaluate")
 def evaluate_model_endpoint(data: dict):
@@ -141,9 +124,18 @@ def evaluate_model_endpoint(data: dict):
 
         result = train_and_evaluate(training_data)
 
+        evaluation = result["evaluation"]
+
+        metadata = create_model_metadata(
+            training_records=result["trainingRecords"],
+            mae=evaluation["mae"],
+            rmse=evaluation["rmse"],
+        )
+
         return {
             "success": True,
             **result,
+            "metadata": metadata,
         }
 
     except Exception as error:

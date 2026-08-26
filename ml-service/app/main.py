@@ -24,7 +24,7 @@ class PredictionRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {
+        return {
         "success": True,
         "service": "Pharmix ML Service",
         "status": "healthy",
@@ -56,6 +56,13 @@ def predict(request: PredictionRequest):
             predicted_daily_demand * 7,
             2,
         )
+        stock_coverage_days = 0
+
+        if predicted_daily_demand > 0:
+            stock_coverage_days = round(
+                request.current_stock / predicted_daily_demand,
+                2,
+            )
 
         if request.current_stock < predicted_7_day_demand:
             recommendation = "RESTOCK_REQUIRED"
@@ -84,6 +91,35 @@ def predict(request: PredictionRequest):
             target_stock - request.current_stock,
         )
 
+        if recommendation == "RESTOCK_REQUIRED":
+            explanation = (
+                f"Predicted daily demand is "
+                f"{round(predicted_daily_demand, 2)} units. "
+                f"Current stock covers approximately "
+                f"{stock_coverage_days} days. "
+                f"Current stock is below the predicted "
+                f"7-day demand, so immediate restocking "
+                f"is recommended."
+            )
+        elif recommendation == "LOW_STOCK_RISK":
+            explanation = (
+                f"Predicted daily demand is "
+                f"{round(predicted_daily_demand, 2)} units. "
+                f"Current stock covers approximately "
+                f"{stock_coverage_days} days. "
+                f"Current stock is close to the predicted "
+                f"demand, so inventory should be monitored."
+            )
+        else:
+            explanation = (
+                f"Predicted daily demand is "
+                f"{round(predicted_daily_demand, 2)} units. "
+                f"Current stock covers approximately "
+                f"{stock_coverage_days} days. "
+                f"Current stock is sufficient for the "
+                f"predicted demand. No immediate restocking "
+                f"is required."
+            )
         return {
             "success": True,
             "prediction": {
@@ -94,16 +130,19 @@ def predict(request: PredictionRequest):
                 "predicted7DayDemand": predicted_7_day_demand,
                 "currentStock": request.current_stock,
                 "recommendation": recommendation,
+                "stockCoverageDays": stock_coverage_days,
                 "recommendedRestockQuantity": round(
                     recommended_restock_quantity,
                     2,
                 ),
+                "explanation": explanation,
                 "model": {
                     "name": "XGBoost",
                     "version": "1.0.0",
                 },
             },
-        }
+            }
+        
 
     except FileNotFoundError as error:
         return {

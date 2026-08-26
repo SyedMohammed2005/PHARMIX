@@ -1,0 +1,25 @@
+@"
+# Next.js
+.next/
+out/
+
+# Node
+node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Python
+ml-service/venv/
+__pycache__/
+*.py[cod]
+
+# Python cache
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+"@ | Set-Content .\.gitignore

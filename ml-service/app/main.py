@@ -59,24 +59,49 @@ def predict(request: PredictionRequest):
 
         if request.current_stock < predicted_7_day_demand:
             recommendation = "RESTOCK_REQUIRED"
-        elif request.current_stock <= predicted_7_day_demand * 1.2:
+        elif (
+            request.current_stock
+            <= predicted_7_day_demand * 1.2
+        ):
             recommendation = "LOW_STOCK_RISK"
         else:
             recommendation = "SUFFICIENT_STOCK"
+
+        # Calculate target stock using predicted demand
+        # and the pharmacy's reorder policy.
+        target_stock = min(
+            request.maximum_stock,
+            max(
+                predicted_7_day_demand,
+                request.reorder_point,
+            ),
+        )
+
+        # Calculate how many units should be added
+        # to reach the target stock level.
+        recommended_restock_quantity = max(
+            0,
+            target_stock - request.current_stock,
+        )
 
         return {
             "success": True,
             "prediction": {
                 "predictedDailyDemand": round(
-                    predicted_daily_demand, 2
+                    predicted_daily_demand,
+                    2,
                 ),
                 "predicted7DayDemand": predicted_7_day_demand,
                 "currentStock": request.current_stock,
                 "recommendation": recommendation,
+                "recommendedRestockQuantity": round(
+                    recommended_restock_quantity,
+                    2,
+                ),
                 "model": {
-            "name": "XGBoost",
-            "version": "1.0.0",
-        },
+                    "name": "XGBoost",
+                    "version": "1.0.0",
+                },
             },
         }
 
@@ -85,8 +110,6 @@ def predict(request: PredictionRequest):
             "success": False,
             "message": str(error),
         }
-    # Temporary baseline prediction.
-   
 @app.post("/train")
 def train(training_data: list[dict]):
 

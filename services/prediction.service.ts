@@ -2,6 +2,41 @@ import { prisma } from "@/lib/prisma";
 
 const ML_SERVICE_URL =
   process.env.ML_SERVICE_URL || "http://localhost:8000";
+  export async function checkMLServiceHealth() {
+  try {
+    const response = await fetch(
+      `${ML_SERVICE_URL}/health`,
+      {
+        method: "GET",
+      }
+    );
+
+    if (!response.ok) {
+      return {
+        available: false,
+        status: "unhealthy",
+      };
+    }
+
+    const data = await response.json();
+
+    return {
+      available: data.success === true,
+      status: data.status || "unknown",
+      service: data.service || "Pharmix ML Service",
+    };
+  } catch (error) {
+    console.error(
+      "ML service health check failed:",
+      error
+    );
+
+    return {
+      available: false,
+      status: "unavailable",
+    };
+  }
+}
 
 type DemandPredictionParams = {
   days: number;

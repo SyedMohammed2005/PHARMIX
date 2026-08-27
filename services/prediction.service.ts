@@ -2,6 +2,9 @@ import { prisma } from "@/lib/prisma";
 
 const ML_SERVICE_URL =
   process.env.ML_SERVICE_URL || "http://localhost:8000";
+  const ML_SERVICE_TIMEOUT = Number(
+  process.env.ML_SERVICE_TIMEOUT || 5000
+);
   export async function checkMLServiceHealth() {
   try {
     const response = await fetch(
@@ -56,9 +59,9 @@ async function predictWithMLService(features: {
 }) {
   const controller = new AbortController();
 
-  const timeout = setTimeout(() => {
-    controller.abort();
-  }, 5000);
+const timeout = setTimeout(() => {
+  controller.abort();
+}, ML_SERVICE_TIMEOUT);
 
   try {
     const response = await fetch(

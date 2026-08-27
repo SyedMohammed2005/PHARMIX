@@ -54,39 +54,62 @@ async function predictWithMLService(features: {
   maximumStock: number;
   reorderPoint: number;
 }) {
-  const response = await fetch(`${ML_SERVICE_URL}/predict`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      sales_last_7_days: features.salesLast7Days,
-      sales_last_30_days: features.salesLast30Days,
-      average_daily_demand_7: features.averageDailyDemand7,
-      average_daily_demand_30: features.averageDailyDemand30,
-      demand_trend: features.demandTrend,
-      current_stock: features.currentStock,
-      minimum_stock: features.minimumStock,
-      maximum_stock: features.maximumStock,
-      reorder_point: features.reorderPoint,
-    }),
-  });
+  const controller = new AbortController();
 
-  if (!response.ok) {
-    throw new Error(
-      `ML service returned ${response.status}`
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, 5000);
+
+  try {
+    const response = await fetch(
+      `${ML_SERVICE_URL}/predict`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          sales_last_7_days:
+            features.salesLast7Days,
+          sales_last_30_days:
+            features.salesLast30Days,
+          average_daily_demand_7:
+            features.averageDailyDemand7,
+          average_daily_demand_30:
+            features.averageDailyDemand30,
+          demand_trend:
+            features.demandTrend,
+          current_stock:
+            features.currentStock,
+          minimum_stock:
+            features.minimumStock,
+          maximum_stock:
+            features.maximumStock,
+          reorder_point:
+            features.reorderPoint,
+        }),
+      }
     );
+
+    if (!response.ok) {
+      throw new Error(
+        `ML service returned ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(
+        data.message || "ML prediction failed"
+      );
+    }
+
+    return data.prediction;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const data = await response.json();
-
-  if (!data.success) {
-    throw new Error(
-      data.message || "ML prediction failed"
-    );
-  }
-
-  return data.prediction;
 }
 
 export async function getDemandPredictions({

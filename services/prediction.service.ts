@@ -5,6 +5,9 @@ const ML_SERVICE_URL =
   const ML_SERVICE_TIMEOUT = Number(
   process.env.ML_SERVICE_TIMEOUT || 5000
 );
+const ML_SERVICE_RETRIES = Number(
+  process.env.ML_SERVICE_RETRIES || 3
+);
   export async function checkMLServiceHealth() {
   try {
     const response = await fetch(
@@ -113,6 +116,45 @@ const timeout = setTimeout(() => {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function predictWithRetry(features: {
+  salesLast7Days: number;
+  salesLast30Days: number;
+  averageDailyDemand7: number;
+  averageDailyDemand30: number;
+  demandTrend: number;
+  currentStock: number;
+  minimumStock: number;
+  maximumStock: number;
+  reorderPoint: number;
+}) {
+  let lastError: unknown;
+
+  for (
+    let attempt = 1;
+    attempt <= ML_SERVICE_RETRIES;
+    attempt++
+  ) {
+    try {
+      return await predictWithMLService(features);
+    } catch (error) {
+      lastError = error;
+
+      console.error(
+        `ML prediction attempt ${attempt} failed:`,
+        error
+      );
+
+      if (attempt < ML_SERVICE_RETRIES) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000)
+        );
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 export async function getDemandPredictions({
@@ -278,9 +320,9 @@ export async function getDemandPredictions({
 
 try {
   mlPrediction =
-    await predictWithMLService(
-      features
-    );
+    await predictWithRetry(
+  features
+);
 } catch (error) {
   console.error(
     "ML prediction failed. Using fallback:",
@@ -405,4 +447,5 @@ function createFallbackPrediction(features: {
       version: "fallback-1.0.0",
     },
   };
+  
 }

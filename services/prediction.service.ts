@@ -213,10 +213,22 @@ export async function getDemandPredictions({
             inventory?.reorderPoint ?? 0,
         };
 
-        const mlPrediction =
-  await predictWithMLService(
-    features
+       let mlPrediction;
+
+try {
+  mlPrediction =
+    await predictWithMLService(
+      features
+    );
+} catch (error) {
+  console.error(
+    "ML prediction failed. Using fallback:",
+    error
   );
+
+  mlPrediction =
+    createFallbackPrediction(features);
+}
 
 return {
   productId: item.productId,
@@ -258,4 +270,78 @@ return {
   );
 
   return predictions;
+}
+
+function createFallbackPrediction(features: {
+  averageDailyDemand30: number;
+  currentStock: number;
+}) {
+  const predictedDailyDemand =
+    features.averageDailyDemand30;
+
+  const predicted7DayDemand = Number(
+    (predictedDailyDemand * 7).toFixed(2)
+  );
+
+  let stockCoverageDays = 0;
+
+  if (predictedDailyDemand > 0) {
+    stockCoverageDays = Number(
+      (
+        features.currentStock /
+        predictedDailyDemand
+      ).toFixed(2)
+    );
+  }
+
+  let recommendation = "SUFFICIENT_STOCK";
+
+  if (
+    features.currentStock <
+    predicted7DayDemand
+  ) {
+    recommendation = "RESTOCK_REQUIRED";
+  } else if (
+    features.currentStock <=
+    predicted7DayDemand * 1.2
+  ) {
+    recommendation = "LOW_STOCK_RISK";
+  }
+
+  const recommendedRestockQuantity =
+    recommendation === "RESTOCK_REQUIRED"
+      ? Number(
+          (
+            predicted7DayDemand -
+            features.currentStock
+          ).toFixed(2)
+        )
+      : 0;
+
+  let explanation = "";
+
+  if (recommendation === "RESTOCK_REQUIRED") {
+    explanation =
+      "ML service is unavailable. A baseline demand calculation indicates that current stock is below expected demand.";
+  } else if (recommendation === "LOW_STOCK_RISK") {
+    explanation =
+      "ML service is unavailable. A baseline demand calculation indicates that inventory is close to expected demand.";
+  } else {
+    explanation =
+      "ML service is unavailable. A baseline demand calculation indicates that current stock is sufficient.";
+  }
+
+  return {
+    predictedDailyDemand,
+    predicted7DayDemand,
+    currentStock: features.currentStock,
+    stockCoverageDays,
+    recommendation,
+    recommendedRestockQuantity,
+    explanation,
+    model: {
+      name: "Baseline Demand Calculation",
+      version: "fallback-1.0.0",
+    },
+  };
 }

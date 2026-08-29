@@ -8,12 +8,20 @@ import {
 
 type GetSalesParams = {
   customerId?: string;
+  search?: string;
+  paymentMethod?: PaymentMethod;
+  startDate?: Date;
+  endDate?: Date;
   page: number;
   limit: number;
 };
 
 export async function getSales({
   customerId,
+  search,
+  paymentMethod,
+  startDate,
+  endDate,
   page,
   limit,
 }: GetSalesParams) {
@@ -21,8 +29,51 @@ export async function getSales({
 
   const where: Prisma.SaleWhereInput = {};
 
+  // Filter by customer
   if (customerId) {
     where.customerId = customerId;
+  }
+
+  // Search by invoice number or customer name
+  if (search) {
+    where.OR = [
+      {
+        invoiceNumber: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+      {
+        customer: {
+          name: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      },
+    ];
+  }
+
+  // Filter by payment method
+  if (paymentMethod) {
+    where.payment = {
+      is: {
+        method: paymentMethod,
+      },
+    };
+  }
+
+  // Filter by date range
+  if (startDate || endDate) {
+    where.createdAt = {};
+
+    if (startDate) {
+      where.createdAt.gte = startDate;
+    }
+
+    if (endDate) {
+      where.createdAt.lte = endDate;
+    }
   }
 
   const [sales, total] = await Promise.all([

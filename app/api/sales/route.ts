@@ -72,11 +72,52 @@ export async function GET(request: Request) {
 
     // 3. Read query parameters
     const { searchParams } = new URL(request.url);
+const customerId =
+  searchParams.get("customerId") || undefined;
 
-    const customerId =
-      searchParams.get("customerId") || undefined;
+const search =
+  searchParams.get("search") || undefined;
 
-    const page = Math.max(
+const paymentMethodParam =
+  searchParams.get("paymentMethod");
+
+const paymentMethod =
+  paymentMethodParam &&
+  Object.values(PaymentMethod).includes(
+    paymentMethodParam as PaymentMethod
+  )
+    ? (paymentMethodParam as PaymentMethod)
+    : undefined;
+
+const startDateParam =
+  searchParams.get("startDate");
+
+const endDateParam =
+  searchParams.get("endDate");
+
+const startDate =
+  startDateParam &&
+  !Number.isNaN(
+    new Date(startDateParam).getTime()
+  )
+    ? new Date(startDateParam)
+    : undefined;
+
+let endDate: Date | undefined;
+
+if (
+  endDateParam &&
+  !Number.isNaN(
+    new Date(endDateParam).getTime()
+  )
+) {
+  endDate = new Date(endDateParam);
+
+  // Include the complete selected day
+  endDate.setHours(23, 59, 59, 999);
+}
+
+  const page = Math.max(
       Number(searchParams.get("page")) || 1,
       1
     );
@@ -91,10 +132,14 @@ export async function GET(request: Request) {
 
     // 4. Get sales from service
     const result = await getSales({
-      customerId,
-      page,
-      limit,
-    });
+  customerId,
+  search,
+  paymentMethod,
+  startDate,
+  endDate,
+  page,
+  limit,
+});
 
     // 5. Return response
     return NextResponse.json({

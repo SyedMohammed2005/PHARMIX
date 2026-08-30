@@ -6,13 +6,25 @@ import { UserRole } from "@/src/generated/prisma/client";
 
 const createCustomerSchema = z.object({
   name: z.string().min(1, "Customer name is required"),
-  phone: z.string().min(10, "Phone number must be at least 10 characters").optional(),
-  email: z.string().email("Invalid email").optional(),
+
+  phone: z
+    .string()
+    .regex(
+      /^\d{10}$/,
+      "Phone number must contain exactly 10 digits"
+    )
+    .optional(),
+
+  email: z
+    .string()
+    .email("Invalid email")
+    .optional(),
+
   address: z.string().optional(),
 });
-
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // 1. Authentication
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
@@ -25,6 +37,7 @@ export async function GET() {
       );
     }
 
+    // 2. Authorization
     const allowed = hasRole(currentUser.role, [
       UserRole.ADMIN,
       UserRole.PHARMACIST,
@@ -42,19 +55,93 @@ export async function GET() {
       );
     }
 
-    const customers = await prisma.customer.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    // 3. Query parameters
+    const { searchParams } = new URL(request.url);
 
+    const search =
+      searchParams.get("search")?.trim() || undefined;
+
+    const page = Math.max(
+      Number(searchParams.get("page")) || 1,
+      1
+    );
+
+    const limit = Math.min(
+      Math.max(
+        Number(searchParams.get("limit")) || 10,
+        1
+      ),
+      100
+    );
+
+    const skip = (page - 1) * limit;
+
+    // 4. Build customer filters
+    const where = search
+      ? {
+          OR: [
+            {
+              name: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
+            {
+              phone: {
+                contains: search,
+              },
+            },
+            {
+              email: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
+          ],
+        }
+      : {};
+
+    // 5. Fetch customers + total
+    const [customers, total] = await Promise.all([
+      prisma.customer.findMany({
+        where,
+
+        orderBy: {
+          createdAt: "desc",
+        },
+
+        skip,
+        take: limit,
+      }),
+
+      prisma.customer.count({
+        where,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    // 6. Response
     return NextResponse.json({
       success: true,
       count: customers.length,
+
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+
       customers,
     });
   } catch (error) {
-    console.error("GET /api/customers error:", error);
+    console.error(
+      "GET /api/customers error:",
+      error
+    );
 
     return NextResponse.json(
       {
@@ -65,7 +152,6 @@ export async function GET() {
     );
   }
 }
-
 export async function POST(request: Request) {
   try {
     const currentUser = await getCurrentUser();

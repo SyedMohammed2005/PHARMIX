@@ -33,6 +33,76 @@ const updateInventorySchema = z.object({
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
+
+export async function GET(
+  request: Request,
+  context: RouteContext
+) {
+  try {
+    // 1. Authentication
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Not authenticated",
+        },
+        { status: 401 }
+      );
+    }
+
+    // 2. Get inventory ID
+    const { id } = await context.params;
+
+    // 3. Find inventory
+    const inventory = await prisma.inventory.findUnique({
+      where: {
+        id,
+      },
+
+      include: {
+        product: {
+          include: {
+            category: true,
+            supplier: true,
+          },
+        },
+      },
+    });
+
+    // 4. Inventory not found
+    if (!inventory) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Inventory not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    // 5. Success response
+    return NextResponse.json({
+      success: true,
+      inventory,
+    });
+  } catch (error) {
+    console.error(
+      "GET /api/inventory/[id] error:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to fetch inventory details",
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
 request: Request,
 context: RouteContext

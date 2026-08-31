@@ -38,9 +38,8 @@ type SalesResponse = {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
   };
-
-  
 };
+
 type SalesSummary = {
   totalSales: number;
   totalRevenue: number;
@@ -54,15 +53,23 @@ type SalesSummaryResponse = {
 };
 
 export default function SalesPage() {
+  // =========================
+  // STATES
+  // =========================
+
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [summary, setSummary] =
-  useState<SalesSummary | null>(null);
+    useState<SalesSummary | null>(null);
 
-  // Filters
+  // =========================
+  // FILTER STATES
+  // =========================
+
   const [search, setSearch] = useState("");
+
   const [debouncedSearch, setDebouncedSearch] =
     useState("");
 
@@ -75,16 +82,23 @@ export default function SalesPage() {
   const [endDate, setEndDate] =
     useState("");
 
-  // Pagination
+  // =========================
+  // PAGINATION STATES
+  // =========================
+
   const [page, setPage] = useState(1);
+
   const [pagination, setPagination] =
-  useState<SalesResponse["pagination"] | null>(
-    null
-  );
+    useState<SalesResponse["pagination"] | null>(
+      null
+    );
 
   const limit = 20;
 
-  // Debounce search
+  // =========================
+  // DEBOUNCE SEARCH
+  // =========================
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearch(search);
@@ -94,159 +108,117 @@ export default function SalesPage() {
     return () => clearTimeout(timeoutId);
   }, [search]);
 
+  // =========================
+  // FETCH SALES SUMMARY
+  // =========================
 
   const fetchSummary = async () => {
-  try {
-    const response = await fetch(
-      "/api/sales/summary"
-    );
-
-    const result: SalesSummaryResponse =
-      await response.json();
-
-    if (!response.ok || !result.success) {
-      throw new Error(
-        "Failed to fetch sales summary"
+    try {
+      const response = await fetch(
+        "/api/sales/summary"
       );
-    }
 
-    setSummary(result.summary);
-  } catch (error) {
-    console.error(
-      "Failed to fetch sales summary:",
-      error
-    );
-  }
-};
-const fetchSales = async () => {
-  try {
-    setLoading(true);
-    setError("");
+      const result: SalesSummaryResponse =
+        await response.json();
 
-    const params = new URLSearchParams();
-
-    params.set("page", page.toString());
-    params.set("limit", limit.toString());
-
-    if (debouncedSearch.trim()) {
-      params.set(
-        "search",
-        debouncedSearch.trim()
-      );
-    }
-
-    if (paymentMethod) {
-      params.set(
-        "paymentMethod",
-        paymentMethod
-      );
-    }
-
-    if (startDate) {
-      params.set("startDate", startDate);
-    }
-
-    if (endDate) {
-      params.set("endDate", endDate);
-    }
-
-    const response = await fetch(
-      `/api/sales?${params.toString()}`
-    );
-
-    const result: SalesResponse =
-      await response.json();
-
-    if (!response.ok || !result.success) {
-      throw new Error(
-        "Failed to fetch sales"
-      );
-    }
-
-    setSales(result.sales);
-    setPagination(result.pagination);
-  } catch (error) {
-    console.error(
-      "Failed to fetch sales:",
-      error
-    );
-
-    setError(
-      "Failed to load sales history."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
-useEffect(() => {
-  fetchSummary();
-}, []);
-
-  // Fetch sales
-  useEffect(() => {
-    const fetchSales = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const params = new URLSearchParams();
-
-        params.set("page", page.toString());
-        params.set("limit", limit.toString());
-
-        if (debouncedSearch.trim()) {
-          params.set(
-            "search",
-            debouncedSearch.trim()
-          );
-        }
-
-        if (paymentMethod) {
-          params.set(
-            "paymentMethod",
-            paymentMethod
-          );
-        }
-
-        if (startDate) {
-          params.set("startDate", startDate);
-        }
-
-        if (endDate) {
-          params.set("endDate", endDate);
-        }
-
-        const response = await fetch(
-          `/api/sales?${params.toString()}`
+      if (!response.ok || !result.success) {
+        throw new Error(
+          "Failed to fetch sales summary"
         );
-
-        const result: SalesResponse =
-          await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(
-            result.success
-              ? "Failed to fetch sales"
-              : "Failed to load sales"
-          );
-        }
-
-        setSales(result.sales);
-        setPagination(result.pagination);
-      } catch (error) {
-        console.error(
-          "Failed to fetch sales:",
-          error
-        );
-
-        setError(
-          "Failed to load sales history."
-        );
-      } finally {
-        setLoading(false);
       }
-    };
 
+      setSummary(result.summary);
+    } catch (error) {
+      console.error(
+        "Failed to fetch sales summary:",
+        error
+      );
+    }
+  };
+
+  // =========================
+  // FETCH SALES
+  // =========================
+
+  const fetchSales = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const params = new URLSearchParams();
+
+      // Pagination
+      params.set("page", page.toString());
+      params.set("limit", limit.toString());
+
+      // Search
+      if (debouncedSearch.trim()) {
+        params.set(
+          "search",
+          debouncedSearch.trim()
+        );
+      }
+
+      // Payment Method
+      if (paymentMethod) {
+        params.set(
+          "paymentMethod",
+          paymentMethod
+        );
+      }
+
+      // Start Date
+      if (startDate) {
+        params.set("startDate", startDate);
+      }
+
+      // End Date
+      if (endDate) {
+        params.set("endDate", endDate);
+      }
+
+      const response = await fetch(
+        `/api/sales?${params.toString()}`
+      );
+
+      const result: SalesResponse =
+        await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          "Failed to fetch sales"
+        );
+      }
+
+      setSales(result.sales);
+      setPagination(result.pagination);
+    } catch (error) {
+      console.error(
+        "Failed to fetch sales:",
+        error
+      );
+
+      setError(
+        "Failed to load sales history."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // =========================
+  // FETCH SUMMARY ON PAGE LOAD
+  // =========================
+
+  useEffect(() => {
+    fetchSummary();
+  }, []);
+
+  // =========================
+  // FETCH SALES WHEN FILTERS CHANGE
+  // =========================
+
+  useEffect(() => {
     fetchSales();
   }, [
     page,
@@ -256,14 +228,21 @@ useEffect(() => {
     endDate,
   ]);
 
-  const refreshSalesData = async () => {
-  await Promise.all([
-    fetchSales(),
-    fetchSummary(),
-  ]);
-};
+  // =========================
+  // REFRESH DATA
+  // =========================
 
-  // Clear all filters
+  const refreshSalesData = async () => {
+    await Promise.all([
+      fetchSales(),
+      fetchSummary(),
+    ]);
+  };
+
+  // =========================
+  // CLEAR FILTERS
+  // =========================
+
   const handleClearFilters = () => {
     setSearch("");
     setDebouncedSearch("");
@@ -279,97 +258,123 @@ useEffect(() => {
     startDate ||
     endDate;
 
+  // =========================
+  // UI
+  // =========================
+
   return (
     <div className="space-y-6 text-black">
-      
-    {/* Header */}
-<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-  <div>
-    <h1 className="text-2xl font-bold">
-      Sales History
-    </h1>
+      {/* ========================= */}
+      {/* HEADER */}
+      {/* ========================= */}
 
-    <p className="mt-1 text-sm text-gray-500">
-      View, search, and manage pharmacy sales.
-    </p>
-  </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">
+            Sales History
+          </h1>
 
-  <button
-    type="button"
-    onClick={refreshSalesData}
-    disabled={loading}
-    className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-  >
-    {loading ? "Refreshing..." : "Refresh Data"}
-  </button>
-</div>
-      {/* Sales Summary */}
-<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-  {/* Total Sales */}
-  <div className="rounded-lg border bg-white p-5 shadow-sm">
-    <p className="text-sm font-medium text-gray-500">
-      Total Sales
-    </p>
+          <p className="mt-1 text-sm text-gray-500">
+            View, search, and manage pharmacy sales.
+          </p>
+        </div>
 
-    <p className="mt-2 text-2xl font-bold">
-      {summary?.totalSales ?? 0}
-    </p>
+        <button
+          type="button"
+          onClick={refreshSalesData}
+          disabled={loading}
+          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading
+            ? "Refreshing..."
+            : "Refresh Data"}
+        </button>
+      </div>
 
-    <p className="mt-1 text-xs text-gray-400">
-      All recorded transactions
-    </p>
-  </div>
+      {/* ========================= */}
+      {/* SALES SUMMARY */}
+      {/* ========================= */}
 
-  {/* Total Revenue */}
-  <div className="rounded-lg border bg-white p-5 shadow-sm">
-    <p className="text-sm font-medium text-gray-500">
-      Total Revenue
-    </p>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Total Sales */}
 
-    <p className="mt-2 text-2xl font-bold">
-      ₹{(summary?.totalRevenue ?? 0).toFixed(2)}
-    </p>
+        <div className="rounded-lg border bg-white p-5 shadow-sm">
+          <p className="text-sm font-medium text-gray-500">
+            Total Sales
+          </p>
 
-    <p className="mt-1 text-xs text-gray-400">
-      Revenue from all sales
-    </p>
-  </div>
+          <p className="mt-2 text-2xl font-bold">
+            {summary?.totalSales ?? 0}
+          </p>
 
-  {/* Today's Sales */}
-  <div className="rounded-lg border bg-white p-5 shadow-sm">
-    <p className="text-sm font-medium text-gray-500">
-      Today's Sales
-    </p>
+          <p className="mt-1 text-xs text-gray-400">
+            All recorded transactions
+          </p>
+        </div>
 
-    <p className="mt-2 text-2xl font-bold">
-      {summary?.todaySales ?? 0}
-    </p>
+        {/* Total Revenue */}
 
-    <p className="mt-1 text-xs text-gray-400">
-      Transactions completed today
-    </p>
-  </div>
+        <div className="rounded-lg border bg-white p-5 shadow-sm">
+          <p className="text-sm font-medium text-gray-500">
+            Total Revenue
+          </p>
 
-  {/* Today's Revenue */}
-  <div className="rounded-lg border bg-white p-5 shadow-sm">
-    <p className="text-sm font-medium text-gray-500">
-      Today's Revenue
-    </p>
+          <p className="mt-2 text-2xl font-bold">
+            ₹
+            {(
+              summary?.totalRevenue ?? 0
+            ).toFixed(2)}
+          </p>
 
-    <p className="mt-2 text-2xl font-bold">
-      ₹{(summary?.todayRevenue ?? 0).toFixed(2)}
-    </p>
+          <p className="mt-1 text-xs text-gray-400">
+            Revenue from all sales
+          </p>
+        </div>
 
-    <p className="mt-1 text-xs text-gray-400">
-      Revenue generated today
-    </p>
-  </div>
-</div>
+        {/* Today's Sales */}
 
-      {/* Filters */}
+        <div className="rounded-lg border bg-white p-5 shadow-sm">
+          <p className="text-sm font-medium text-gray-500">
+            Today&apos;s Sales
+          </p>
+
+          <p className="mt-2 text-2xl font-bold">
+            {summary?.todaySales ?? 0}
+          </p>
+
+          <p className="mt-1 text-xs text-gray-400">
+            Transactions completed today
+          </p>
+        </div>
+
+        {/* Today's Revenue */}
+
+        <div className="rounded-lg border bg-white p-5 shadow-sm">
+          <p className="text-sm font-medium text-gray-500">
+            Today&apos;s Revenue
+          </p>
+
+          <p className="mt-2 text-2xl font-bold">
+            ₹
+            {(
+              summary?.todayRevenue ?? 0
+            ).toFixed(2)}
+          </p>
+
+          <p className="mt-1 text-xs text-gray-400">
+            Revenue generated today
+          </p>
+        </div>
+      </div>
+
+      {/* ========================= */}
+      {/* FILTERS */}
+      {/* ========================= */}
+
       <div className="rounded-lg border bg-white p-5 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {/* Search */}
+
           <div className="space-y-2">
             <label
               htmlFor="search"
@@ -391,6 +396,7 @@ useEffect(() => {
           </div>
 
           {/* Payment Method */}
+
           <div className="space-y-2">
             <label
               htmlFor="paymentMethod"
@@ -403,7 +409,9 @@ useEffect(() => {
               id="paymentMethod"
               value={paymentMethod}
               onChange={(event) => {
-                setPaymentMethod(event.target.value);
+                setPaymentMethod(
+                  event.target.value
+                );
                 setPage(1);
               }}
               className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none transition focus:border-gray-900"
@@ -431,6 +439,7 @@ useEffect(() => {
           </div>
 
           {/* From Date */}
+
           <div className="space-y-2">
             <label
               htmlFor="startDate"
@@ -452,6 +461,7 @@ useEffect(() => {
           </div>
 
           {/* To Date */}
+
           <div className="space-y-2">
             <label
               htmlFor="endDate"
@@ -473,6 +483,7 @@ useEffect(() => {
           </div>
 
           {/* Clear Filters */}
+
           <div className="flex flex-col justify-end">
             <button
               type="button"
@@ -486,7 +497,10 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Results Summary */}
+      {/* ========================= */}
+      {/* RESULTS SUMMARY */}
+      {/* ========================= */}
+
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500">
           Showing {sales.length} sale
@@ -500,14 +514,20 @@ useEffect(() => {
         )}
       </div>
 
-      {/* Error */}
+      {/* ========================= */}
+      {/* ERROR */}
+      {/* ========================= */}
+
       {error && (
         <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">
           {error}
         </div>
       )}
 
-      {/* Sales Table */}
+      {/* ========================= */}
+      {/* SALES TABLE */}
+      {/* ========================= */}
+
       <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -564,14 +584,20 @@ useEffect(() => {
                     key={sale.id}
                     className="border-b last:border-b-0 hover:bg-gray-50"
                   >
+                    {/* Invoice */}
+
                     <td className="px-6 py-4 font-medium">
                       {sale.invoiceNumber}
                     </td>
+
+                    {/* Customer */}
 
                     <td className="px-6 py-4">
                       {sale.customer?.name ||
                         "Walk-in Customer"}
                     </td>
+
+                    {/* Payment */}
 
                     <td className="px-6 py-4">
                       <div>
@@ -587,18 +613,22 @@ useEffect(() => {
                       </div>
                     </td>
 
+                    {/* Total */}
+
                     <td className="px-6 py-4 font-semibold">
                       ₹
-                      {sale.totalAmount.toFixed(
-                        2
-                      )}
+                      {sale.totalAmount.toFixed(2)}
                     </td>
+
+                    {/* Date */}
 
                     <td className="px-6 py-4 text-gray-600">
                       {new Date(
                         sale.createdAt
                       ).toLocaleString()}
                     </td>
+
+                    {/* Action */}
 
                     <td className="px-6 py-4">
                       <Link
@@ -616,60 +646,70 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Pagination */}
-{pagination && pagination.totalPages > 1 && (
-  <div className="flex flex-col gap-4 rounded-lg border bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-    
-    {/* Results information */}
-    <p className="text-sm text-gray-600">
-      Page{" "}
-      <span className="font-semibold">
-        {pagination.page}
-      </span>{" "}
-      of{" "}
-      <span className="font-semibold">
-        {pagination.totalPages}
-      </span>
-      {" · "}
-      Total{" "}
-      <span className="font-semibold">
-        {pagination.total}
-      </span>{" "}
-      sales
-    </p>
+      {/* ========================= */}
+      {/* PAGINATION */}
+      {/* ========================= */}
 
-    {/* Buttons */}
-    <div className="flex gap-3">
-      <button
-        type="button"
-        disabled={!pagination.hasPreviousPage}
-        onClick={() =>
-          setPage((currentPage) =>
-            Math.max(currentPage - 1, 1)
-          )
-        }
-        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        ← Previous
-      </button>
+      {pagination &&
+        pagination.totalPages > 1 && (
+          <div className="flex flex-col gap-4 rounded-lg border bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            {/* Results Information */}
 
-      <button
-        type="button"
-        disabled={!pagination.hasNextPage}
-        onClick={() =>
-          setPage((currentPage) =>
-            currentPage + 1
-          )
-        }
-        className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        Next →
-      </button>
+            <p className="text-sm text-gray-600">
+              Page{" "}
+              <span className="font-semibold">
+                {pagination.page}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold">
+                {pagination.totalPages}
+              </span>
+              {" · "}
+              Total{" "}
+              <span className="font-semibold">
+                {pagination.total}
+              </span>{" "}
+              sales
+            </p>
+
+            {/* Buttons */}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={
+                  !pagination.hasPreviousPage
+                }
+                onClick={() =>
+                  setPage((currentPage) =>
+                    Math.max(
+                      currentPage - 1,
+                      1
+                    )
+                  )
+                }
+                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                ← Previous
+              </button>
+
+              <button
+                type="button"
+                disabled={!pagination.hasNextPage}
+                onClick={() =>
+                  setPage(
+                    (currentPage) =>
+                      currentPage + 1
+                  )
+                }
+                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
     </div>
-  </div>
-)}
-    </div>
-
-    
   );
 }
+

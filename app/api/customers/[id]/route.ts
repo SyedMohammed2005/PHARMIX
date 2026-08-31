@@ -16,14 +16,14 @@ const updateCustomerSchema = z.object({
     .min(1, "Customer name is required")
     .optional(),
 
- phone: z
-  .string()
-  .regex(
-    /^\d{10}$/,
-    "Phone number must contain exactly 10 digits"
-  )
-  .optional(),
-  
+  phone: z
+    .string()
+    .regex(
+      /^\d{10}$/,
+      "Phone number must contain exactly 10 digits"
+    )
+    .optional(),
+
   email: z
     .string()
     .email("Invalid email")
@@ -36,12 +36,16 @@ const updateCustomerSchema = z.object({
     .optional(),
 });
 
-// GET SINGLE CUSTOMER
+// ============================================
+// GET SINGLE CUSTOMER + PURCHASE HISTORY
+// ============================================
+
 export async function GET(
   request: Request,
   context: RouteContext
 ) {
   try {
+    // 1. Authentication
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
@@ -54,6 +58,7 @@ export async function GET(
       );
     }
 
+    // 2. Authorization
     const allowed = hasRole(currentUser.role, [
       UserRole.ADMIN,
       UserRole.PHARMACIST,
@@ -72,8 +77,10 @@ export async function GET(
       );
     }
 
+    // 3. Get customer ID
     const { id } = await context.params;
 
+    // 4. Fetch customer with complete purchase history
     const customer = await prisma.customer.findUnique({
       where: {
         id,
@@ -83,10 +90,31 @@ export async function GET(
           orderBy: {
             createdAt: "desc",
           },
+          include: {
+            items: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    sku: true,
+                  },
+                },
+                batch: {
+                  select: {
+                    id: true,
+                    batchNumber: true,
+                  },
+                },
+              },
+            },
+            payment: true,
+          },
         },
       },
     });
 
+    // 5. Customer not found
     if (!customer) {
       return NextResponse.json(
         {
@@ -97,9 +125,46 @@ export async function GET(
       );
     }
 
+    // 6. Calculate customer statistics
+    const totalPurchases = customer.sales.length;
+
+    const totalAmountSpent = customer.sales.reduce(
+      (total, sale) => total + sale.totalAmount,
+      0
+    );
+
+    const totalItemsPurchased = customer.sales.reduce(
+      (total, sale) =>
+        total +
+        sale.items.reduce(
+          (itemTotal, item) =>
+            itemTotal + item.quantity,
+          0
+        ),
+      0
+    );
+
+    // 7. Return customer details + statistics + history
     return NextResponse.json({
       success: true,
-      customer,
+
+      customer: {
+        id: customer.id,
+        name: customer.name,
+        phone: customer.phone,
+        email: customer.email,
+        address: customer.address,
+        createdAt: customer.createdAt,
+        updatedAt: customer.updatedAt,
+      },
+
+      statistics: {
+        totalPurchases,
+        totalAmountSpent,
+        totalItemsPurchased,
+      },
+
+      purchaseHistory: customer.sales,
     });
   } catch (error) {
     console.error(
@@ -110,14 +175,17 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to fetch customer",
+        message: "Failed to fetch customer details",
       },
       { status: 500 }
     );
   }
 }
 
+// ============================================
 // UPDATE CUSTOMER
+// ============================================
+
 export async function PUT(
   request: Request,
   context: RouteContext

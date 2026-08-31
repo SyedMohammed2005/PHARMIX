@@ -892,20 +892,24 @@ return ( <div className="space-y-6 text-black">
                   ).toLocaleDateString()}
                 </td>
 
-                <td className="px-6 py-4">
+               <td className="px-6 py-4">
+  <div className="flex gap-2">
+    <button
+      type="button"
+      onClick={() => handleEditCustomer(customer)}
+      className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+    >
+      ✏️ Edit
+    </button>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleEditCustomer(customer)
-                    }
-                    className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-                  >
-                    ✏️ Edit
-                  </button>
-
-                </td>
-
+    <a
+      href={`/customers/${customer.id}`}
+      className="rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-700"
+    >
+      👁 View Details
+    </a>
+  </div>
+</td>
               </tr>
 
             ))

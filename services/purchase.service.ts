@@ -19,7 +19,9 @@ type CreatePurchaseInput = {
   paymentMethod: PaymentMethod;
 };
 
-export async function findSupplierById(supplierId: string) {
+export async function findSupplierById(
+  supplierId: string,
+) {
   return prisma.supplier.findUnique({
     where: {
       id: supplierId,
@@ -40,7 +42,9 @@ export async function validatePurchaseItems(
     });
 
     if (!product) {
-      throw new Error(`Product not found: ${item.productId}`);
+      throw new Error(
+        `Product not found: ${item.productId}`,
+      );
     }
 
     const batch = await prisma.batch.findUnique({
@@ -50,7 +54,9 @@ export async function validatePurchaseItems(
     });
 
     if (!batch) {
-      throw new Error(`Batch not found: ${item.batchId}`);
+      throw new Error(
+        `Batch not found: ${item.batchId}`,
+      );
     }
 
     if (batch.productId !== item.productId) {
@@ -69,6 +75,33 @@ export async function validatePurchaseItems(
   return validatedItems;
 }
 
+export async function validatePurchaseInventories(
+  items: PurchaseItemInput[],
+) {
+  const inventories = [];
+
+  for (const item of items) {
+    const inventory = await prisma.inventory.findUnique({
+      where: {
+        productId: item.productId,
+      },
+    });
+
+    if (!inventory) {
+      throw new Error(
+        `Inventory not found for product: ${item.productId}`,
+      );
+    }
+
+    inventories.push({
+      productId: item.productId,
+      inventory,
+    });
+  }
+
+  return inventories;
+}
+
 export function calculatePurchaseTotals(
   items: PurchaseItemInput[],
   discount: number,
@@ -77,8 +110,11 @@ export function calculatePurchaseTotals(
   let tax = 0;
 
   const purchaseItemsData = items.map((item) => {
-    const itemSubtotal = item.unitPrice * item.quantity;
-    const itemTax = itemSubtotal * (item.gst / 100);
+    const itemSubtotal =
+      item.unitPrice * item.quantity;
+
+    const itemTax =
+      itemSubtotal * (item.gst / 100);
 
     subtotal += itemSubtotal;
     tax += itemTax;
@@ -93,7 +129,8 @@ export function calculatePurchaseTotals(
     };
   });
 
-  const totalAmount = subtotal + tax - discount;
+  const totalAmount =
+    subtotal + tax - discount;
 
   return {
     purchaseItemsData,
@@ -113,98 +150,194 @@ export async function createPurchase(
     paymentMethod,
   } = data;
 
+  // 1. Validate supplier before transaction
+
+  const supplier =
+    await findSupplierById(supplierId);
+
+  if (!supplier) {
+    throw new Error(
+      `Supplier not found: ${supplierId}`,
+    );
+  }
+
+  // 2. Prevent duplicate products
+
+  const productIds = items.map(
+    (item) => item.productId,
+  );
+
+  if (
+    new Set(productIds).size !==
+    productIds.length
+  ) {
+    throw new Error(
+      "Duplicate product found in purchase items",
+    );
+  }
+
+  // 3. Prevent duplicate batches
+
+  const batchIds = items.map(
+    (item) => item.batchId,
+  );
+
+  if (
+    new Set(batchIds).size !==
+    batchIds.length
+  ) {
+    throw new Error(
+      "Duplicate batch found in purchase items",
+    );
+  }
+
+  // 4. Validate products and batches
+  // BEFORE transaction
+
+  await validatePurchaseItems(items);
+
+  // 5. Fetch inventories BEFORE transaction
+
+  const inventories =
+    await validatePurchaseInventories(items);
+
+  // 6. Calculate totals
+
   const {
     purchaseItemsData,
     subtotal,
     tax,
     totalAmount,
-  } = calculatePurchaseTotals(items, discount);
+  } = calculatePurchaseTotals(
+    items,
+    discount,
+  );
 
-  const purchaseNumber = `PUR-${Date.now()}`;
+  // 7. Generate purchase number
 
-  return prisma.$transaction(async (tx) => {
-    const createdPurchase = await tx.purchase.create({
-      data: {
-        purchaseNumber,
-        supplierId,
-        subtotal,
-        discount,
-        tax,
-        totalAmount,
+  const purchaseNumber =
+    `PUR-${Date.now()}`;
 
-        items: {
-          create: purchaseItemsData,
-        },
+  // 8. Start optimized transaction
 
-        payment: {
-          create: {
-            amount: totalAmount,
-            method: paymentMethod,
-            status: PaymentStatus.COMPLETED,
+  return prisma.$transaction(
+    async (tx) => {
+      // Create purchase + items + payment
+
+      const createdPurchase =
+        await tx.purchase.create({
+          data: {
+            purchaseNumber,
+            supplierId,
+            subtotal,
+            discount,
+            tax,
+            totalAmount,
+
+            items: {
+              create: purchaseItemsData,
+            },
+
+            payment: {
+              create: {
+                amount: totalAmount,
+                method: paymentMethod,
+                status:
+                  PaymentStatus.COMPLETED,
+              },
+            },
           },
-        },
-      },
 
-      include: {
-        supplier: true,
-        items: {
           include: {
-            product: true,
-            batch: true,
+            supplier: true,
+
+            items: {
+              include: {
+                product: true,
+                batch: true,
+              },
+            },
+
+            payment: true,
           },
-        },
-        payment: true,
-      },
-    });
+        });
 
-    for (const item of items) {
-      await tx.batch.update({
-        where: {
-          id: item.batchId,
-        },
-        data: {
-          quantity: {
-            increment: item.quantity,
+      // Update stock for every item
+
+      for (const item of items) {
+        // Find already validated inventory
+        // No database query here
+
+        const inventoryData =
+          inventories.find(
+            (inventoryItem) =>
+              inventoryItem.productId ===
+              item.productId,
+          );
+
+        if (!inventoryData) {
+          throw new Error(
+            `Inventory data not found for product: ${item.productId}`,
+          );
+        }
+
+        const inventory =
+          inventoryData.inventory;
+
+        // Update batch quantity
+
+        await tx.batch.update({
+          where: {
+            id: item.batchId,
           },
-          purchasePrice: item.unitPrice,
-        },
-      });
 
-      const inventory = await tx.inventory.findUnique({
-        where: {
-          productId: item.productId,
-        },
-      });
+          data: {
+            quantity: {
+              increment: item.quantity,
+            },
 
-      if (!inventory) {
-        throw new Error(
-          `Inventory not found for product: ${item.productId}`,
-        );
+            purchasePrice:
+              item.unitPrice,
+          },
+        });
+
+        // Update inventory quantity
+
+        await tx.inventory.update({
+          where: {
+            id: inventory.id,
+          },
+
+          data: {
+            quantity: {
+              increment: item.quantity,
+            },
+          },
+        });
+
+        // Create stock transaction
+
+        await tx.stockTransaction.create({
+          data: {
+            inventoryId: inventory.id,
+
+            type: "PURCHASE",
+
+            quantity: item.quantity,
+
+            reason:
+              `Purchase ${purchaseNumber}`,
+          },
+        });
       }
 
-      await tx.inventory.update({
-        where: {
-          id: inventory.id,
-        },
-        data: {
-          quantity: {
-            increment: item.quantity,
-          },
-        },
-      });
-
-      await tx.stockTransaction.create({
-        data: {
-          inventoryId: inventory.id,
-          type: "PURCHASE",
-          quantity: item.quantity,
-          reason: `Purchase ${purchaseNumber}`,
-        },
-      });
-    }
-
-    return createdPurchase;
-  });
+      return createdPurchase;
+    },
+    {
+      maxWait: 5000,
+      timeout: 30000,
+    },
+  );
 }
 
 type PurchaseFilters = {
@@ -241,11 +374,12 @@ export async function getPurchases(
     limit,
   } = filters;
 
-  const safeSortBy = allowedSortFields.includes(
-    sortBy as (typeof allowedSortFields)[number],
-  )
-    ? sortBy
-    : "createdAt";
+  const safeSortBy =
+    allowedSortFields.includes(
+      sortBy as (typeof allowedSortFields)[number],
+    )
+      ? sortBy
+      : "createdAt";
 
   const skip = (page - 1) * limit;
 
@@ -308,32 +442,36 @@ export async function getPurchases(
       : {}),
   };
 
-  const total = await prisma.purchase.count({
-    where,
-  });
+  const total =
+    await prisma.purchase.count({
+      where,
+    });
 
-  const purchases = await prisma.purchase.findMany({
-    where,
-    skip,
-    take: limit,
+  const purchases =
+    await prisma.purchase.findMany({
+      where,
 
-    orderBy: {
-      [safeSortBy]: order,
-    },
+      skip,
 
-    include: {
-      supplier: true,
+      take: limit,
 
-      items: {
-        include: {
-          product: true,
-          batch: true,
-        },
+      orderBy: {
+        [safeSortBy]: order,
       },
 
-      payment: true,
-    },
-  });
+      include: {
+        supplier: true,
+
+        items: {
+          include: {
+            product: true,
+            batch: true,
+          },
+        },
+
+        payment: true,
+      },
+    });
 
   return {
     purchases,

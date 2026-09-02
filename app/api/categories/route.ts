@@ -25,12 +25,11 @@ export async function GET() {
       );
     }
 
-    const allowed = hasRole(currentUser.role, [
-      UserRole.ADMIN,
-      UserRole.PHARMACIST,
-      UserRole.INVENTORY_MANAGER,
-      UserRole.BUSINESS_ANALYST,
-    ]);
+   const allowed = hasRole(currentUser.role, [
+  UserRole.ADMIN,
+  UserRole.INVENTORY_MANAGER,
+
+]);
 
     if (!allowed) {
       return NextResponse.json(
@@ -78,6 +77,7 @@ export async function POST(request: Request) {
 
     const allowed = hasRole(currentUser.role, [
       UserRole.ADMIN,
+      UserRole.INVENTORY_MANAGER,
     ]);
 
     if (!allowed) {

@@ -51,12 +51,17 @@ const navigationItems: NavigationItem[] = [
       "BUSINESS_ANALYST",
     ],
   },
-  {
-    name: "Products",
-    href: "/products",
-    icon: Package,
-    roles: ["ADMIN", "INVENTORY_MANAGER"],
-  },
+ {
+  name: "Products",
+  href: "/products",
+  icon: Package,
+  roles: [
+    "ADMIN",
+    "PHARMACIST",
+    "INVENTORY_MANAGER",
+    "BUSINESS_ANALYST",
+  ],
+},
   {
     name: "Inventory",
     href: "/inventory",

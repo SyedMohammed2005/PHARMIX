@@ -16,6 +16,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Pencil,
+  Trash2,
 } from "lucide-react";
 
 type UserRole =
@@ -90,6 +91,9 @@ export default function ProductDetailsPage() {
 
   const [currentUserRole, setCurrentUserRole] =
     useState<UserRole | null>(null);
+
+    const [deleting, setDeleting] =
+  useState(false);
 
   const fetchProduct = async () => {
     try {
@@ -170,6 +174,55 @@ export default function ProductDetailsPage() {
     currentUserRole === "ADMIN" ||
     currentUserRole === "INVENTORY_MANAGER";
 
+    const canDelete =
+  currentUserRole === "ADMIN";
+
+  const handleDelete = async () => {
+  const confirmed = window.confirm(
+    `Are you sure you want to delete "${product?.name}"? This action cannot be undone.`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    setDeleting(true);
+
+    const response = await fetch(
+      `/api/products/${productId}`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.message ||
+          "Failed to delete product",
+      );
+    }
+
+    router.push("/products");
+    router.refresh();
+  } catch (error) {
+    console.error(
+      "Failed to delete product:",
+      error,
+    );
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Failed to delete product",
+    );
+  } finally {
+    setDeleting(false);
+  }
+};
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -232,16 +285,43 @@ export default function ProductDetailsPage() {
 
         {/* ROLE-BASED EDIT BUTTON */}
 
-        {canEdit && (
-          <Link
-            href={`/products/${product.id}/edit`}
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-          >
-            <Pencil className="h-4 w-4" />
+      <div className="flex items-center gap-3">
 
-            Edit Product
-          </Link>
-        )}
+  {canEdit && (
+    <Link
+      href={`/products/${product.id}/edit`}
+      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+    >
+      <Pencil className="h-4 w-4" />
+
+      Edit Product
+    </Link>
+  )}
+
+  {canDelete && (
+    <button
+      type="button"
+      onClick={handleDelete}
+      disabled={deleting}
+      className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {deleting ? (
+        <>
+          <RefreshCw className="h-4 w-4 animate-spin" />
+
+          Deleting...
+        </>
+      ) : (
+        <>
+          <Trash2 className="h-4 w-4" />
+
+          Delete Product
+        </>
+      )}
+    </button>
+  )}
+
+</div>
 
       </div>
 

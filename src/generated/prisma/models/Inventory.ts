@@ -252,8 +252,8 @@ export type InventoryWhereInput = {
   reorderPoint?: Prisma.IntFilter<"Inventory"> | number
   createdAt?: Prisma.DateTimeFilter<"Inventory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Inventory"> | Date | string
-  transactions?: Prisma.StockTransactionListRelationFilter
   product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
+  transactions?: Prisma.StockTransactionListRelationFilter
 }
 
 export type InventoryOrderByWithRelationInput = {
@@ -265,8 +265,8 @@ export type InventoryOrderByWithRelationInput = {
   reorderPoint?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  transactions?: Prisma.StockTransactionOrderByRelationAggregateInput
   product?: Prisma.ProductOrderByWithRelationInput
+  transactions?: Prisma.StockTransactionOrderByRelationAggregateInput
 }
 
 export type InventoryWhereUniqueInput = Prisma.AtLeast<{
@@ -281,8 +281,8 @@ export type InventoryWhereUniqueInput = Prisma.AtLeast<{
   reorderPoint?: Prisma.IntFilter<"Inventory"> | number
   createdAt?: Prisma.DateTimeFilter<"Inventory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Inventory"> | Date | string
-  transactions?: Prisma.StockTransactionListRelationFilter
   product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
+  transactions?: Prisma.StockTransactionListRelationFilter
 }, "id" | "productId">
 
 export type InventoryOrderByWithAggregationInput = {
@@ -323,8 +323,8 @@ export type InventoryCreateInput = {
   reorderPoint?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  transactions?: Prisma.StockTransactionCreateNestedManyWithoutInventoryInput
   product: Prisma.ProductCreateNestedOneWithoutInventoryInput
+  transactions?: Prisma.StockTransactionCreateNestedManyWithoutInventoryInput
 }
 
 export type InventoryUncheckedCreateInput = {
@@ -347,8 +347,8 @@ export type InventoryUpdateInput = {
   reorderPoint?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  transactions?: Prisma.StockTransactionUpdateManyWithoutInventoryNestedInput
   product?: Prisma.ProductUpdateOneRequiredWithoutInventoryNestedInput
+  transactions?: Prisma.StockTransactionUpdateManyWithoutInventoryNestedInput
 }
 
 export type InventoryUncheckedUpdateInput = {
@@ -674,8 +674,8 @@ export type InventorySelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   reorderPoint?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  transactions?: boolean | Prisma.Inventory$transactionsArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
+  transactions?: boolean | Prisma.Inventory$transactionsArgs<ExtArgs>
   _count?: boolean | Prisma.InventoryCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["inventory"]>
 
@@ -716,8 +716,8 @@ export type InventorySelectScalar = {
 
 export type InventoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productId" | "quantity" | "minimumStock" | "maximumStock" | "reorderPoint" | "createdAt" | "updatedAt", ExtArgs["result"]["inventory"]>
 export type InventoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  transactions?: boolean | Prisma.Inventory$transactionsArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
+  transactions?: boolean | Prisma.Inventory$transactionsArgs<ExtArgs>
   _count?: boolean | Prisma.InventoryCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type InventoryIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -730,8 +730,8 @@ export type InventoryIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
 export type $InventoryPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Inventory"
   objects: {
-    transactions: Prisma.$StockTransactionPayload<ExtArgs>[]
     product: Prisma.$ProductPayload<ExtArgs>
+    transactions: Prisma.$StockTransactionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1136,8 +1136,8 @@ readonly fields: InventoryFieldRefs;
  */
 export interface Prisma__InventoryClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  transactions<T extends Prisma.Inventory$transactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Inventory$transactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$StockTransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   product<T extends Prisma.ProductDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductDefaultArgs<ExtArgs>>): Prisma.Prisma__ProductClient<runtime.Types.Result.GetResult<Prisma.$ProductPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  transactions<T extends Prisma.Inventory$transactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Inventory$transactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$StockTransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.

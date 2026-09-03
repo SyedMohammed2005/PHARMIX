@@ -30,15 +30,16 @@ export function LoginForm() {
         }),
       });
 
-      const data = await response.json();
+   const data = await response.json();
 
-      if (!response.ok) {
-        setMessage(data.message || "Login failed");
-        return;
-      }
 
-      router.push("/dashboard");
-      router.refresh();
+if (!response.ok || !data.success) {
+  setMessage(data.message || "Login failed");
+  return;
+}
+
+router.push("/dashboard");
+router.refresh();
     } catch (error) {
       console.error("Login error:", error);
 

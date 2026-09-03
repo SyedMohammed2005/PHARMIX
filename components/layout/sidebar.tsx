@@ -72,7 +72,10 @@ const navigationItems: NavigationItem[] = [
     name: "Batches",
     href: "/batches",
     icon: Boxes,
-    roles: ["ADMIN", "INVENTORY_MANAGER"],
+    roles: ["ADMIN", 
+       "PHARMACIST",
+    "INVENTORY_MANAGER",
+    "BUSINESS_ANALYST",],
   },
   {
     name: "Sales",

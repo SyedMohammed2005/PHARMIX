@@ -7,6 +7,289 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(PHARMACIST)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Inventory {
+  id           String             @id @default(cuid())
+  productId    String             @unique
+  quantity     Int                @default(0)
+  minimumStock Int                @default(10)
+  maximumStock Int?
+  reorderPoint Int                @default(10)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  product      Product            @relation(fields: [productId], references: [id])
+  transactions StockTransaction[]
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+}
+
+model Supplier {
+  id        String     @id @default(cuid())
+  name      String
+  email     String?    @unique
+  phone     String?
+  address   String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  products  Product[]
+  purchases Purchase[]
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?  @unique
+  email     String?  @unique
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sales     Sale[]
+}
+
+model Sale {
+  id            String       @id @default(cuid())
+  invoiceNumber String       @unique
+  customerId    String?
+  subtotal      Float
+  discount      Float        @default(0)
+  tax           Float        @default(0)
+  totalAmount   Float
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  payment       Payment?
+  customer      Customer?    @relation(fields: [customerId], references: [id])
+  items         SaleItem[]
+  returns       SaleReturn[]
+
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model SaleReturn {
+  id           String       @id @default(cuid())
+  returnNumber String       @unique
+  saleId       String
+  totalRefund  Float
+  reason       String?
+  status       ReturnStatus @default(COMPLETED)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  items        ReturnItem[]
+  sale         Sale         @relation(fields: [saleId], references: [id])
+
+  @@index([saleId])
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id        String       @id @default(cuid())
+  saleId    String
+  productId String
+  batchId   String
+  quantity  Int
+  unitPrice Float
+  gst       Float        @default(0)
+  subtotal  Float
+  createdAt DateTime     @default(now())
+  returns   ReturnItem[]
+  batch     Batch        @relation(fields: [batchId], references: [id])
+  product   Product      @relation(fields: [productId], references: [id])
+  sale      Sale         @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@index([productId])
+  @@index([batchId])
+}
+
+model ReturnItem {
+  id           String     @id @default(cuid())
+  returnId     String
+  saleItemId   String
+  quantity     Int
+  refundAmount Float
+  createdAt    DateTime   @default(now())
+  return       SaleReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  saleItem     SaleItem   @relation(fields: [saleItemId], references: [id])
+
+  @@index([returnId])
+  @@index([saleItemId])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  saleId         String        @unique
+  amount         Float
+  method         PaymentMethod
+  status         PaymentStatus @default(COMPLETED)
+  transactionId  String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  refundedAmount Float         @default(0)
+  sale           Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([method])
+  @@index([status])
+}
+
+model Product {
+  id                   String         @id @default(cuid())
+  name                 String
+  genericName          String?
+  brand                String?
+  sku                  String         @unique
+  barcode              String?        @unique
+  purchasePrice        Float
+  sellingPrice         Float
+  mrp                  Float
+  gst                  Float          @default(0)
+  requiresPrescription Boolean        @default(false)
+  categoryId           String
+  supplierId           String
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  batches              Batch[]
+  inventory            Inventory?
+  category             Category       @relation(fields: [categoryId], references: [id])
+  supplier             Supplier       @relation(fields: [supplierId], references: [id])
+  purchaseItems        PurchaseItem[]
+  saleItems            SaleItem[]
+
+  @@index([categoryId])
+  @@index([supplierId])
+}
+
+model Batch {
+  id              String         @id @default(cuid())
+  batchNumber     String         @unique
+  productId       String
+  manufactureDate DateTime
+  expiryDate      DateTime
+  quantity        Int            @default(0)
+  purchasePrice   Float
+  sellingPrice    Float
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  product         Product        @relation(fields: [productId], references: [id])
+  purchaseItems   PurchaseItem[]
+  saleItems       SaleItem[]
+
+  @@index([productId])
+  @@index([expiryDate])
+}
+
+model StockTransaction {
+  id          String               @id @default(cuid())
+  inventoryId String
+  type        StockTransactionType
+  quantity    Int
+  reason      String?
+  createdAt   DateTime             @default(now())
+  inventory   Inventory            @relation(fields: [inventoryId], references: [id])
+
+  @@index([inventoryId])
+  @@index([type])
+}
+
+model Purchase {
+  id             String           @id @default(cuid())
+  purchaseNumber String           @unique
+  supplierId     String
+  subtotal       Float
+  discount       Float            @default(0)
+  tax            Float            @default(0)
+  totalAmount    Float
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  supplier       Supplier         @relation(fields: [supplierId], references: [id])
+  items          PurchaseItem[]
+  payment        PurchasePayment?
+  returns        PurchaseReturn[]
+
+  @@index([supplierId])
+  @@index([createdAt])
+}
+
+model PurchaseReturn {
+  id           String               @id @default(cuid())
+  returnNumber String               @unique
+  purchaseId   String
+  totalRefund  Float
+  reason       String?
+  status       ReturnStatus         @default(COMPLETED)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  purchase     Purchase             @relation(fields: [purchaseId], references: [id])
+  items        PurchaseReturnItem[]
+
+  @@index([purchaseId])
+  @@index([createdAt])
+}
+
+model PurchaseReturnItem {
+  id             String         @id @default(cuid())
+  returnId       String
+  purchaseItemId String
+  quantity       Int
+  refundAmount   Float
+  createdAt      DateTime       @default(now())
+  purchaseItem   PurchaseItem   @relation(fields: [purchaseItemId], references: [id])
+  return         PurchaseReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  @@index([returnId])
+  @@index([purchaseItemId])
+}
+
+model PurchaseItem {
+  id          String               @id @default(cuid())
+  purchaseId  String
+  productId   String
+  batchId     String
+  quantity    Int
+  unitPrice   Float
+  gst         Float                @default(0)
+  subtotal    Float
+  createdAt   DateTime             @default(now())
+  batch       Batch                @relation(fields: [batchId], references: [id])
+  product     Product              @relation(fields: [productId], references: [id])
+  purchase    Purchase             @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  returnItems PurchaseReturnItem[]
+
+  @@index([purchaseId])
+  @@index([productId])
+  @@index([batchId])
+}
+
+model PurchasePayment {
+  id            String        @id @default(cuid())
+  purchaseId    String        @unique
+  amount        Float
+  method        PaymentMethod
+  status        PaymentStatus @default(COMPLETED)
+  transactionId String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  purchase      Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([method])
+  @@index([status])
+}
+
 enum UserRole {
   ADMIN
   PHARMACIST
@@ -33,373 +316,10 @@ enum ReturnStatus {
   CANCELLED
 }
 
-model User {
-  id       String @id @default(cuid())
-  name     String
-  email    String @unique
-  password String
-
-  role UserRole @default(PHARMACIST)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Inventory {
-  id String @id @default(cuid())
-
-  productId String @unique
-
-  quantity Int @default(0)
-
-  minimumStock Int @default(10)
-
-  maximumStock Int?
-
-  reorderPoint Int @default(10)
-
-  transactions StockTransaction[]
-
-  product Product @relation(fields: [productId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Category {
-  id          String  @id @default(cuid())
-  name        String  @unique
-  description String?
-
-  products Product[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Supplier {
-  id      String  @id @default(cuid())
-  name    String
-  email   String? @unique
-  phone   String?
-  address String?
-
-  products  Product[]
-  purchases Purchase[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Customer {
-  id      String  @id @default(cuid())
-  name    String
-  phone   String? @unique
-  email   String? @unique
-  address String?
-
-  sales Sale[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Sale {
-  id String @id @default(cuid())
-
-  invoiceNumber String @unique
-
-  customerId String?
-  customer   Customer? @relation(fields: [customerId], references: [id])
-
-  subtotal    Float
-  discount    Float @default(0)
-  tax         Float @default(0)
-  totalAmount Float
-
-  items   SaleItem[]
-  payment Payment?
-  returns SaleReturn[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([customerId])
-  @@index([createdAt])
-}
-
-model SaleReturn {
-  id String @id @default(cuid())
-
-  returnNumber String @unique
-
-  saleId String
-  sale   Sale   @relation(fields: [saleId], references: [id])
-
-  totalRefund Float
-  reason      String?
-
-  status ReturnStatus @default(COMPLETED)
-
-  items ReturnItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([saleId])
-  @@index([createdAt])
-}
-
-model SaleItem {
-  id String @id @default(cuid())
-
-  saleId String
-  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
-
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-
-  batchId String
-  batch   Batch  @relation(fields: [batchId], references: [id])
-
-  quantity  Int
-  unitPrice Float
-  gst       Float @default(0)
-  subtotal  Float
-
-  returns ReturnItem[]
-
-  createdAt DateTime @default(now())
-
-  @@index([saleId])
-  @@index([productId])
-  @@index([batchId])
-}
-
-model ReturnItem {
-  id String @id @default(cuid())
-
-  returnId String
-  return   SaleReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
-
-  saleItemId String
-  saleItem   SaleItem @relation(fields: [saleItemId], references: [id])
-
-  quantity     Int
-  refundAmount Float
-
-  createdAt DateTime @default(now())
-
-  @@index([returnId])
-  @@index([saleItemId])
-}
-
-model Payment {
-  id String @id @default(cuid())
-
-  saleId String @unique
-  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
-
-  amount Float
-  method PaymentMethod
-  status PaymentStatus @default(COMPLETED)
-
-  refundedAmount Float @default(0)
-
-  transactionId String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([method])
-  @@index([status])
-}
-
-model Product {
-  id String @id @default(cuid())
-
-  name        String
-  genericName String?
-  brand       String?
-
-  sku     String  @unique
-  barcode String? @unique
-
-  purchasePrice Float
-  sellingPrice  Float
-  mrp           Float
-
-  gst Float @default(0)
-
-  requiresPrescription Boolean @default(false)
-
-  categoryId String
-  supplierId String
-
-  category      Category       @relation(fields: [categoryId], references: [id])
-  supplier      Supplier       @relation(fields: [supplierId], references: [id])
-  inventory     Inventory?
-  batches       Batch[]
-  saleItems     SaleItem[]
-  purchaseItems PurchaseItem[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-
-  @@index([categoryId])
-  @@index([supplierId])
-}
-
-model Batch {
-  id String @id @default(cuid())
-
-  batchNumber String @unique
-
-  productId String
-
-  manufactureDate DateTime
-  expiryDate      DateTime
-
-  quantity Int @default(0)
-
-  purchasePrice Float
-  sellingPrice  Float
-
-  product       Product        @relation(fields: [productId], references: [id])
-  saleItems     SaleItem[]
-  purchaseItems PurchaseItem[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-
-  @@index([productId])
-  @@index([expiryDate])
-}
-
 enum StockTransactionType {
   PURCHASE
   SALE
   RETURN
   DAMAGE
   ADJUSTMENT
-}
-
-model StockTransaction {
-  id String @id @default(cuid())
-
-  inventoryId String
-  inventory   Inventory @relation(fields: [inventoryId], references: [id])
-
-  type     StockTransactionType
-  quantity Int
-  reason   String?
-
-  createdAt DateTime @default(now())
-
-  @@index([inventoryId])
-  @@index([type])
-}
-
-model Purchase {
-  id String @id @default(cuid())
-
-  purchaseNumber String @unique
-
-  supplierId String
-  supplier   Supplier @relation(fields: [supplierId], references: [id])
-
-  subtotal    Float
-  discount    Float @default(0)
-  tax         Float @default(0)
-  totalAmount Float
-
-  items     PurchaseItem[]
-  payment   PurchasePayment?
-  returns   PurchaseReturn[]
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-
-  @@index([supplierId])
-  @@index([createdAt])
-}
-
-model PurchaseReturn {
-  id String @id @default(cuid())
-
-  returnNumber String @unique
-
-  purchaseId String
-  purchase   Purchase @relation(fields: [purchaseId], references: [id])
-
-  totalRefund Float
-  reason      String?
-
-  status ReturnStatus @default(COMPLETED)
-
-  items PurchaseReturnItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([purchaseId])
-  @@index([createdAt])
-}
-
-model PurchaseReturnItem {
-  id String @id @default(cuid())
-
-  returnId String
-  return   PurchaseReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
-
-  purchaseItemId String
-  purchaseItem   PurchaseItem @relation(fields: [purchaseItemId], references: [id])
-
-  quantity     Int
-  refundAmount Float
-
-  createdAt DateTime @default(now())
-
-  @@index([returnId])
-  @@index([purchaseItemId])
-}
-
-model PurchaseItem {
-  id String @id @default(cuid())
-
-  purchaseId String
-  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
-
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-
-  batchId String
-  batch   Batch  @relation(fields: [batchId], references: [id])
-
-  quantity    Int
-  unitPrice   Float
-  gst         Float                @default(0)
-  subtotal    Float
-  returnItems PurchaseReturnItem[]
-  createdAt   DateTime             @default(now())
-
-  @@index([purchaseId])
-  @@index([productId])
-  @@index([batchId])
-}
-
-model PurchasePayment {
-  id String @id @default(cuid())
-
-  purchaseId String   @unique
-  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
-
-  amount Float
-  method PaymentMethod
-  status PaymentStatus @default(COMPLETED)
-
-  transactionId String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([method])
-  @@index([status])
 }

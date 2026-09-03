@@ -260,10 +260,10 @@ export type SaleItemWhereInput = {
   gst?: Prisma.FloatFilter<"SaleItem"> | number
   subtotal?: Prisma.FloatFilter<"SaleItem"> | number
   createdAt?: Prisma.DateTimeFilter<"SaleItem"> | Date | string
-  sale?: Prisma.XOR<Prisma.SaleScalarRelationFilter, Prisma.SaleWhereInput>
-  product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
-  batch?: Prisma.XOR<Prisma.BatchScalarRelationFilter, Prisma.BatchWhereInput>
   returns?: Prisma.ReturnItemListRelationFilter
+  batch?: Prisma.XOR<Prisma.BatchScalarRelationFilter, Prisma.BatchWhereInput>
+  product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
+  sale?: Prisma.XOR<Prisma.SaleScalarRelationFilter, Prisma.SaleWhereInput>
 }
 
 export type SaleItemOrderByWithRelationInput = {
@@ -276,10 +276,10 @@ export type SaleItemOrderByWithRelationInput = {
   gst?: Prisma.SortOrder
   subtotal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
-  sale?: Prisma.SaleOrderByWithRelationInput
-  product?: Prisma.ProductOrderByWithRelationInput
-  batch?: Prisma.BatchOrderByWithRelationInput
   returns?: Prisma.ReturnItemOrderByRelationAggregateInput
+  batch?: Prisma.BatchOrderByWithRelationInput
+  product?: Prisma.ProductOrderByWithRelationInput
+  sale?: Prisma.SaleOrderByWithRelationInput
 }
 
 export type SaleItemWhereUniqueInput = Prisma.AtLeast<{
@@ -295,10 +295,10 @@ export type SaleItemWhereUniqueInput = Prisma.AtLeast<{
   gst?: Prisma.FloatFilter<"SaleItem"> | number
   subtotal?: Prisma.FloatFilter<"SaleItem"> | number
   createdAt?: Prisma.DateTimeFilter<"SaleItem"> | Date | string
-  sale?: Prisma.XOR<Prisma.SaleScalarRelationFilter, Prisma.SaleWhereInput>
-  product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
-  batch?: Prisma.XOR<Prisma.BatchScalarRelationFilter, Prisma.BatchWhereInput>
   returns?: Prisma.ReturnItemListRelationFilter
+  batch?: Prisma.XOR<Prisma.BatchScalarRelationFilter, Prisma.BatchWhereInput>
+  product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
+  sale?: Prisma.XOR<Prisma.SaleScalarRelationFilter, Prisma.SaleWhereInput>
 }, "id">
 
 export type SaleItemOrderByWithAggregationInput = {
@@ -340,10 +340,10 @@ export type SaleItemCreateInput = {
   gst?: number
   subtotal: number
   createdAt?: Date | string
-  sale: Prisma.SaleCreateNestedOneWithoutItemsInput
-  product: Prisma.ProductCreateNestedOneWithoutSaleItemsInput
-  batch: Prisma.BatchCreateNestedOneWithoutSaleItemsInput
   returns?: Prisma.ReturnItemCreateNestedManyWithoutSaleItemInput
+  batch: Prisma.BatchCreateNestedOneWithoutSaleItemsInput
+  product: Prisma.ProductCreateNestedOneWithoutSaleItemsInput
+  sale: Prisma.SaleCreateNestedOneWithoutItemsInput
 }
 
 export type SaleItemUncheckedCreateInput = {
@@ -366,10 +366,10 @@ export type SaleItemUpdateInput = {
   gst?: Prisma.FloatFieldUpdateOperationsInput | number
   subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sale?: Prisma.SaleUpdateOneRequiredWithoutItemsNestedInput
-  product?: Prisma.ProductUpdateOneRequiredWithoutSaleItemsNestedInput
-  batch?: Prisma.BatchUpdateOneRequiredWithoutSaleItemsNestedInput
   returns?: Prisma.ReturnItemUpdateManyWithoutSaleItemNestedInput
+  batch?: Prisma.BatchUpdateOneRequiredWithoutSaleItemsNestedInput
+  product?: Prisma.ProductUpdateOneRequiredWithoutSaleItemsNestedInput
+  sale?: Prisma.SaleUpdateOneRequiredWithoutItemsNestedInput
 }
 
 export type SaleItemUncheckedUpdateInput = {
@@ -630,9 +630,9 @@ export type SaleItemCreateWithoutSaleInput = {
   gst?: number
   subtotal: number
   createdAt?: Date | string
-  product: Prisma.ProductCreateNestedOneWithoutSaleItemsInput
-  batch: Prisma.BatchCreateNestedOneWithoutSaleItemsInput
   returns?: Prisma.ReturnItemCreateNestedManyWithoutSaleItemInput
+  batch: Prisma.BatchCreateNestedOneWithoutSaleItemsInput
+  product: Prisma.ProductCreateNestedOneWithoutSaleItemsInput
 }
 
 export type SaleItemUncheckedCreateWithoutSaleInput = {
@@ -695,9 +695,9 @@ export type SaleItemCreateWithoutReturnsInput = {
   gst?: number
   subtotal: number
   createdAt?: Date | string
-  sale: Prisma.SaleCreateNestedOneWithoutItemsInput
-  product: Prisma.ProductCreateNestedOneWithoutSaleItemsInput
   batch: Prisma.BatchCreateNestedOneWithoutSaleItemsInput
+  product: Prisma.ProductCreateNestedOneWithoutSaleItemsInput
+  sale: Prisma.SaleCreateNestedOneWithoutItemsInput
 }
 
 export type SaleItemUncheckedCreateWithoutReturnsInput = {
@@ -735,9 +735,9 @@ export type SaleItemUpdateWithoutReturnsInput = {
   gst?: Prisma.FloatFieldUpdateOperationsInput | number
   subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sale?: Prisma.SaleUpdateOneRequiredWithoutItemsNestedInput
-  product?: Prisma.ProductUpdateOneRequiredWithoutSaleItemsNestedInput
   batch?: Prisma.BatchUpdateOneRequiredWithoutSaleItemsNestedInput
+  product?: Prisma.ProductUpdateOneRequiredWithoutSaleItemsNestedInput
+  sale?: Prisma.SaleUpdateOneRequiredWithoutItemsNestedInput
 }
 
 export type SaleItemUncheckedUpdateWithoutReturnsInput = {
@@ -759,9 +759,9 @@ export type SaleItemCreateWithoutProductInput = {
   gst?: number
   subtotal: number
   createdAt?: Date | string
-  sale: Prisma.SaleCreateNestedOneWithoutItemsInput
-  batch: Prisma.BatchCreateNestedOneWithoutSaleItemsInput
   returns?: Prisma.ReturnItemCreateNestedManyWithoutSaleItemInput
+  batch: Prisma.BatchCreateNestedOneWithoutSaleItemsInput
+  sale: Prisma.SaleCreateNestedOneWithoutItemsInput
 }
 
 export type SaleItemUncheckedCreateWithoutProductInput = {
@@ -809,9 +809,9 @@ export type SaleItemCreateWithoutBatchInput = {
   gst?: number
   subtotal: number
   createdAt?: Date | string
-  sale: Prisma.SaleCreateNestedOneWithoutItemsInput
-  product: Prisma.ProductCreateNestedOneWithoutSaleItemsInput
   returns?: Prisma.ReturnItemCreateNestedManyWithoutSaleItemInput
+  product: Prisma.ProductCreateNestedOneWithoutSaleItemsInput
+  sale: Prisma.SaleCreateNestedOneWithoutItemsInput
 }
 
 export type SaleItemUncheckedCreateWithoutBatchInput = {
@@ -870,9 +870,9 @@ export type SaleItemUpdateWithoutSaleInput = {
   gst?: Prisma.FloatFieldUpdateOperationsInput | number
   subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  product?: Prisma.ProductUpdateOneRequiredWithoutSaleItemsNestedInput
-  batch?: Prisma.BatchUpdateOneRequiredWithoutSaleItemsNestedInput
   returns?: Prisma.ReturnItemUpdateManyWithoutSaleItemNestedInput
+  batch?: Prisma.BatchUpdateOneRequiredWithoutSaleItemsNestedInput
+  product?: Prisma.ProductUpdateOneRequiredWithoutSaleItemsNestedInput
 }
 
 export type SaleItemUncheckedUpdateWithoutSaleInput = {
@@ -916,9 +916,9 @@ export type SaleItemUpdateWithoutProductInput = {
   gst?: Prisma.FloatFieldUpdateOperationsInput | number
   subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sale?: Prisma.SaleUpdateOneRequiredWithoutItemsNestedInput
-  batch?: Prisma.BatchUpdateOneRequiredWithoutSaleItemsNestedInput
   returns?: Prisma.ReturnItemUpdateManyWithoutSaleItemNestedInput
+  batch?: Prisma.BatchUpdateOneRequiredWithoutSaleItemsNestedInput
+  sale?: Prisma.SaleUpdateOneRequiredWithoutItemsNestedInput
 }
 
 export type SaleItemUncheckedUpdateWithoutProductInput = {
@@ -962,9 +962,9 @@ export type SaleItemUpdateWithoutBatchInput = {
   gst?: Prisma.FloatFieldUpdateOperationsInput | number
   subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sale?: Prisma.SaleUpdateOneRequiredWithoutItemsNestedInput
-  product?: Prisma.ProductUpdateOneRequiredWithoutSaleItemsNestedInput
   returns?: Prisma.ReturnItemUpdateManyWithoutSaleItemNestedInput
+  product?: Prisma.ProductUpdateOneRequiredWithoutSaleItemsNestedInput
+  sale?: Prisma.SaleUpdateOneRequiredWithoutItemsNestedInput
 }
 
 export type SaleItemUncheckedUpdateWithoutBatchInput = {
@@ -1031,10 +1031,10 @@ export type SaleItemSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   gst?: boolean
   subtotal?: boolean
   createdAt?: boolean
-  sale?: boolean | Prisma.SaleDefaultArgs<ExtArgs>
-  product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
-  batch?: boolean | Prisma.BatchDefaultArgs<ExtArgs>
   returns?: boolean | Prisma.SaleItem$returnsArgs<ExtArgs>
+  batch?: boolean | Prisma.BatchDefaultArgs<ExtArgs>
+  product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
+  sale?: boolean | Prisma.SaleDefaultArgs<ExtArgs>
   _count?: boolean | Prisma.SaleItemCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["saleItem"]>
 
@@ -1048,9 +1048,9 @@ export type SaleItemSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   gst?: boolean
   subtotal?: boolean
   createdAt?: boolean
-  sale?: boolean | Prisma.SaleDefaultArgs<ExtArgs>
-  product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   batch?: boolean | Prisma.BatchDefaultArgs<ExtArgs>
+  product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
+  sale?: boolean | Prisma.SaleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["saleItem"]>
 
 export type SaleItemSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1063,9 +1063,9 @@ export type SaleItemSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   gst?: boolean
   subtotal?: boolean
   createdAt?: boolean
-  sale?: boolean | Prisma.SaleDefaultArgs<ExtArgs>
-  product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   batch?: boolean | Prisma.BatchDefaultArgs<ExtArgs>
+  product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
+  sale?: boolean | Prisma.SaleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["saleItem"]>
 
 export type SaleItemSelectScalar = {
@@ -1082,30 +1082,30 @@ export type SaleItemSelectScalar = {
 
 export type SaleItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "saleId" | "productId" | "batchId" | "quantity" | "unitPrice" | "gst" | "subtotal" | "createdAt", ExtArgs["result"]["saleItem"]>
 export type SaleItemInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  sale?: boolean | Prisma.SaleDefaultArgs<ExtArgs>
-  product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
-  batch?: boolean | Prisma.BatchDefaultArgs<ExtArgs>
   returns?: boolean | Prisma.SaleItem$returnsArgs<ExtArgs>
+  batch?: boolean | Prisma.BatchDefaultArgs<ExtArgs>
+  product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
+  sale?: boolean | Prisma.SaleDefaultArgs<ExtArgs>
   _count?: boolean | Prisma.SaleItemCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type SaleItemIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  sale?: boolean | Prisma.SaleDefaultArgs<ExtArgs>
-  product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   batch?: boolean | Prisma.BatchDefaultArgs<ExtArgs>
+  product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
+  sale?: boolean | Prisma.SaleDefaultArgs<ExtArgs>
 }
 export type SaleItemIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  sale?: boolean | Prisma.SaleDefaultArgs<ExtArgs>
-  product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   batch?: boolean | Prisma.BatchDefaultArgs<ExtArgs>
+  product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
+  sale?: boolean | Prisma.SaleDefaultArgs<ExtArgs>
 }
 
 export type $SaleItemPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SaleItem"
   objects: {
-    sale: Prisma.$SalePayload<ExtArgs>
-    product: Prisma.$ProductPayload<ExtArgs>
-    batch: Prisma.$BatchPayload<ExtArgs>
     returns: Prisma.$ReturnItemPayload<ExtArgs>[]
+    batch: Prisma.$BatchPayload<ExtArgs>
+    product: Prisma.$ProductPayload<ExtArgs>
+    sale: Prisma.$SalePayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1511,10 +1511,10 @@ readonly fields: SaleItemFieldRefs;
  */
 export interface Prisma__SaleItemClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  sale<T extends Prisma.SaleDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SaleDefaultArgs<ExtArgs>>): Prisma.Prisma__SaleClient<runtime.Types.Result.GetResult<Prisma.$SalePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  product<T extends Prisma.ProductDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductDefaultArgs<ExtArgs>>): Prisma.Prisma__ProductClient<runtime.Types.Result.GetResult<Prisma.$ProductPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  batch<T extends Prisma.BatchDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BatchDefaultArgs<ExtArgs>>): Prisma.Prisma__BatchClient<runtime.Types.Result.GetResult<Prisma.$BatchPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   returns<T extends Prisma.SaleItem$returnsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SaleItem$returnsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReturnItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  batch<T extends Prisma.BatchDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BatchDefaultArgs<ExtArgs>>): Prisma.Prisma__BatchClient<runtime.Types.Result.GetResult<Prisma.$BatchPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  product<T extends Prisma.ProductDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductDefaultArgs<ExtArgs>>): Prisma.Prisma__ProductClient<runtime.Types.Result.GetResult<Prisma.$ProductPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  sale<T extends Prisma.SaleDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SaleDefaultArgs<ExtArgs>>): Prisma.Prisma__SaleClient<runtime.Types.Result.GetResult<Prisma.$SalePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.

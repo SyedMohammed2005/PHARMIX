@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  AlertTriangle,
   Boxes,
   Brain,
   ClipboardList,
@@ -76,6 +77,17 @@ const navigationItems: NavigationItem[] = [
        "PHARMACIST",
     "INVENTORY_MANAGER",
     "BUSINESS_ANALYST",],
+  },
+  {
+    name: "Batch Alerts",
+    href: "/batches/alerts",
+    icon: AlertTriangle,
+    roles: [
+      "ADMIN",
+      "PHARMACIST",
+      "INVENTORY_MANAGER",
+      "BUSINESS_ANALYST",
+    ],
   },
   {
     name: "Sales",
@@ -202,10 +214,17 @@ export function Sidebar({ role }: SidebarProps) {
         {allowedItems.map((item) => {
           const Icon = item.icon;
 
-          const isActive =
-            pathname === item.href ||
-            pathname.startsWith(`${item.href}/`);
-
+         const isActive =
+  pathname === item.href ||
+  (
+    pathname.startsWith(`${item.href}/`) &&
+    !navigationItems.some(
+      (otherItem) =>
+        otherItem.href !== item.href &&
+        pathname.startsWith(otherItem.href) &&
+        otherItem.href.length > item.href.length,
+    )
+  );
           return (
             <Link
               key={item.href}

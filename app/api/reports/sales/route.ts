@@ -200,6 +200,36 @@ export async function GET(request: Request) {
         ...values,
       })
     );
+    // 9. Create daily sales data for charts
+const dailySalesMap: Record<
+  string,
+  {
+    date: string;
+    revenue: number;
+    orders: number;
+  }
+> = {};
+
+for (const sale of sales) {
+  const date = sale.createdAt.toISOString().split("T")[0];
+
+  if (!dailySalesMap[date]) {
+    dailySalesMap[date] = {
+      date,
+      revenue: 0,
+      orders: 0,
+    };
+  }
+
+  dailySalesMap[date].revenue += sale.totalAmount;
+  dailySalesMap[date].orders += 1;
+}
+
+const dailySales = Object.values(dailySalesMap).sort(
+  (a, b) =>
+    new Date(a.date).getTime() -
+    new Date(b.date).getTime()
+);
 
     // 9. Return report
     return NextResponse.json({
@@ -222,6 +252,7 @@ export async function GET(request: Request) {
       },
 
       paymentMethods,
+      dailySales,
 
       sales: sales.map((sale) => ({
         id: sale.id,
@@ -239,6 +270,7 @@ export async function GET(request: Request) {
       error
     );
 
+    
     return NextResponse.json(
       {
         success: false,

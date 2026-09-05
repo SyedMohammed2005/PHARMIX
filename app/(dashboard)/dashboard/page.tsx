@@ -5,6 +5,7 @@ import { SalesChart } from "@/components/dashboard/sales-chart";
 import { TopProducts } from "@/components/dashboard/top-products";
 import { StockMovement } from "@/components/dashboard/stock-movement";
 import { PaymentAnalytics } from "@/components/dashboard/payment-analytics";
+import { PredictionDashboard } from "@/components/dashboard/prediction-dashboard";
 import { redirect } from "next/navigation";
 
 import {
@@ -59,17 +60,19 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* ADMIN */}
-      {isAdmin && (
-        <>
-          <DashboardOverview data={dashboardData} />
+    {isAdmin && (
+  <>
+    <DashboardOverview data={dashboardData} />
 
-          <SalesChart
-            data={salesAnalytics.salesByDate}
-          />
+    <PredictionDashboard />
 
-          <TopProducts
-            products={topProductsData.products}
-          />
+    <SalesChart
+      data={salesAnalytics.salesByDate}
+    />
+
+    <TopProducts
+      products={topProductsData.products}
+    />
 
           <StockMovement
             data={stockMovementData}
@@ -88,6 +91,8 @@ export default async function DashboardPage() {
         <>
           <DashboardOverview data={dashboardData} />
 
+          <PredictionDashboard />
+
           <StockMovement
             data={stockMovementData}
           />
@@ -100,6 +105,8 @@ export default async function DashboardPage() {
       {isBusinessAnalyst && (
         <>
           <DashboardOverview data={dashboardData} />
+          
+           <PredictionDashboard />
 
           <SalesChart
             data={salesAnalytics.salesByDate}

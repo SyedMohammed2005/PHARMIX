@@ -157,6 +157,7 @@ async function predictWithRetry(features: {
   throw lastError;
 }
 
+
 export async function getDemandPredictions({
   days,
   productId,
@@ -168,8 +169,8 @@ export async function getDemandPredictions({
   }
 
   /*
-   * We need 30 days of history because
-   * our ML model uses 7-day and 30-day features.
+   * We always need at least 30 days of history
+   * because the ML model uses 7-day and 30-day features.
    */
   const startDate = new Date();
 
@@ -193,7 +194,7 @@ export async function getDemandPredictions({
   });
 
   /*
-   * Get all inventory records needed for prediction.
+   * Get inventory records required for prediction.
    */
   const inventories = await prisma.inventory.findMany({
     where: {
@@ -210,7 +211,7 @@ export async function getDemandPredictions({
 
   /*
    * Group sales by product and calculate
-   * both 7-day and 30-day demand.
+   * both 7-day and 30-day historical demand.
    */
   const grouped = new Map<
     string,
@@ -235,7 +236,9 @@ export async function getDemandPredictions({
   );
 
   for (const item of sales) {
-    const existing = grouped.get(item.productId);
+    const existing = grouped.get(
+      item.productId
+    );
 
     if (!existing) {
       grouped.set(item.productId, {
@@ -246,26 +249,33 @@ export async function getDemandPredictions({
       });
     }
 
-    const product = grouped.get(item.productId)!;
+    const product = grouped.get(
+      item.productId
+    )!;
 
-    if (item.sale.createdAt >= sevenDaysAgo) {
+    if (
+      item.sale.createdAt >= sevenDaysAgo
+    ) {
       product.salesLast7Days += item.quantity;
     }
 
-    if (item.sale.createdAt >= thirtyDaysAgo) {
+    if (
+      item.sale.createdAt >= thirtyDaysAgo
+    ) {
       product.salesLast30Days += item.quantity;
     }
   }
 
   /*
-   * Generate ML predictions.
+   * Generate predictions.
    */
   const predictions = await Promise.all(
     Array.from(grouped.values()).map(
       async (item) => {
-        const inventory = inventoryMap.get(
-          item.productId
-        );
+        const inventory =
+          inventoryMap.get(
+            item.productId
+          );
 
         const averageDailyDemand7 =
           item.salesLast7Days / 7;
@@ -275,7 +285,9 @@ export async function getDemandPredictions({
 
         let demandTrend = 0;
 
-        if (averageDailyDemand30 > 0) {
+        if (
+          averageDailyDemand30 > 0
+        ) {
           demandTrend =
             averageDailyDemand7 /
             averageDailyDemand30;
@@ -316,57 +328,151 @@ export async function getDemandPredictions({
             inventory?.reorderPoint ?? 0,
         };
 
-       let mlPrediction;
+        let mlPrediction;
 
-try {
-  mlPrediction =
-    await predictWithRetry(
-  features
-);
-} catch (error) {
-  console.error(
-    "ML prediction failed. Using fallback:",
-    error
-  );
+        try {
+          mlPrediction =
+            await predictWithRetry(
+              features
+            );
+        } catch (error) {
+          console.error(
+            "ML prediction failed. Using fallback:",
+            error
+          );
 
-  mlPrediction =
-    createFallbackPrediction(features);
-}
+          mlPrediction =
+            createFallbackPrediction(
+              features,
+              days
+            );
+        }
 
-return {
-  productId: item.productId,
+        /*
+         * The ML model predicts daily demand.
+         *
+         * We calculate the requested forecast
+         * horizon from that daily prediction.
+         */
+        const predictedDailyDemand =
+          Number(
+            Number(
+              mlPrediction.predictedDailyDemand
+            ).toFixed(2)
+          );
 
-  productName:
-    item.productName,
+        const predictedDemand =
+          Number(
+            (
+              predictedDailyDemand *
+              days
+            ).toFixed(2)
+          );
 
-  features,
-  
-  prediction: {
-    predictedDailyDemand:
-      mlPrediction.predictedDailyDemand,
+        /*
+         * Keep the existing 7-day value for
+         * compatibility with the current UI.
+         */
+        const predicted7DayDemand =
+          Number(
+            (
+              predictedDailyDemand *
+              7
+            ).toFixed(2)
+          );
 
-    predicted7DayDemand:
-      mlPrediction.predicted7DayDemand,
+        /*
+         * Calculate stock coverage using
+         * predicted daily demand.
+         */
+        let stockCoverageDays = 0;
 
-    currentStock:
-      mlPrediction.currentStock,
+        if (
+          predictedDailyDemand > 0
+        ) {
+          stockCoverageDays =
+            Number(
+              (
+                features.currentStock /
+                predictedDailyDemand
+              ).toFixed(2)
+            );
+        }
 
-    stockCoverageDays:
-      mlPrediction.stockCoverageDays,
+        /*
+         * Calculate recommendation against
+         * the selected forecast horizon.
+         */
+        let recommendation =
+          "SUFFICIENT_STOCK";
 
-    recommendation:
-      mlPrediction.recommendation,
+        if (
+          features.currentStock <
+          predictedDemand
+        ) {
+          recommendation =
+            "RESTOCK_REQUIRED";
+        } else if (
+          features.currentStock <=
+          predictedDemand * 1.2
+        ) {
+          recommendation =
+            "LOW_STOCK_RISK";
+        }
 
-    recommendedRestockQuantity:
-      mlPrediction.recommendedRestockQuantity,
+        /*
+         * Calculate recommended restock quantity.
+         */
+        const recommendedRestockQuantity =
+          recommendation ===
+          "RESTOCK_REQUIRED"
+            ? Number(
+                (
+                  predictedDemand -
+                  features.currentStock
+                ).toFixed(2)
+              )
+            : 0;
 
-    explanation:
-      mlPrediction.explanation,
+        return {
+          productId:
+            item.productId,
 
-    model:
-      mlPrediction.model,
-  },
+          productName:
+            item.productName,
 
+          features,
+
+          prediction: {
+            /*
+             * Dynamic forecast fields.
+             */
+            forecastDays: days,
+
+            predictedDailyDemand,
+
+            predictedDemand,
+
+            /*
+             * Backward-compatible field.
+             */
+            predicted7DayDemand,
+
+            currentStock:
+              features.currentStock,
+
+            stockCoverageDays,
+
+            recommendation,
+
+            recommendedRestockQuantity,
+
+            explanation:
+              mlPrediction.explanation,
+
+            model:
+              mlPrediction.model,
+          },
         };
       }
     )
@@ -375,47 +481,83 @@ return {
   return predictions;
 }
 
-function createFallbackPrediction(features: {
-  averageDailyDemand30: number;
-  currentStock: number;
-}) {
+function createFallbackPrediction(
+  features: {
+    averageDailyDemand30: number;
+    currentStock: number;
+  },
+  days: number
+) {
+  /*
+   * Fallback uses the 30-day average
+   * as the estimated daily demand.
+   */
   const predictedDailyDemand =
-    features.averageDailyDemand30;
+    Number(
+      features.averageDailyDemand30.toFixed(2)
+    );
 
-  const predicted7DayDemand = Number(
-    (predictedDailyDemand * 7).toFixed(2)
-  );
+  /*
+   * Calculate demand for the requested
+   * forecast horizon.
+   */
+  const predictedDemand =
+    Number(
+      (
+        predictedDailyDemand *
+        days
+      ).toFixed(2)
+    );
+
+  /*
+   * Keep the existing 7-day calculation
+   * for backward compatibility.
+   */
+  const predicted7DayDemand =
+    Number(
+      (
+        predictedDailyDemand *
+        7
+      ).toFixed(2)
+    );
 
   let stockCoverageDays = 0;
 
-  if (predictedDailyDemand > 0) {
-    stockCoverageDays = Number(
-      (
-        features.currentStock /
-        predictedDailyDemand
-      ).toFixed(2)
-    );
+  if (
+    predictedDailyDemand > 0
+  ) {
+    stockCoverageDays =
+      Number(
+        (
+          features.currentStock /
+          predictedDailyDemand
+        ).toFixed(2)
+      );
   }
 
-  let recommendation = "SUFFICIENT_STOCK";
+  let recommendation =
+    "SUFFICIENT_STOCK";
 
   if (
     features.currentStock <
-    predicted7DayDemand
+    predictedDemand
   ) {
-    recommendation = "RESTOCK_REQUIRED";
+    recommendation =
+      "RESTOCK_REQUIRED";
   } else if (
     features.currentStock <=
-    predicted7DayDemand * 1.2
+    predictedDemand * 1.2
   ) {
-    recommendation = "LOW_STOCK_RISK";
+    recommendation =
+      "LOW_STOCK_RISK";
   }
 
   const recommendedRestockQuantity =
-    recommendation === "RESTOCK_REQUIRED"
+    recommendation ===
+    "RESTOCK_REQUIRED"
       ? Number(
           (
-            predicted7DayDemand -
+            predictedDemand -
             features.currentStock
           ).toFixed(2)
         )
@@ -423,29 +565,123 @@ function createFallbackPrediction(features: {
 
   let explanation = "";
 
-  if (recommendation === "RESTOCK_REQUIRED") {
+  if (
+    recommendation ===
+    "RESTOCK_REQUIRED"
+  ) {
     explanation =
-      "ML service is unavailable. A baseline demand calculation indicates that current stock is below expected demand.";
-  } else if (recommendation === "LOW_STOCK_RISK") {
+      "ML service is unavailable. A baseline demand calculation indicates that current stock is below expected demand for the selected forecast horizon.";
+  } else if (
+    recommendation ===
+    "LOW_STOCK_RISK"
+  ) {
     explanation =
-      "ML service is unavailable. A baseline demand calculation indicates that inventory is close to expected demand.";
+      "ML service is unavailable. A baseline demand calculation indicates that inventory is close to expected demand for the selected forecast horizon.";
   } else {
     explanation =
-      "ML service is unavailable. A baseline demand calculation indicates that current stock is sufficient.";
+      "ML service is unavailable. A baseline demand calculation indicates that current stock is sufficient for the selected forecast horizon.";
   }
 
   return {
     predictedDailyDemand,
+
+    predictedDemand,
+
     predicted7DayDemand,
-    currentStock: features.currentStock,
+
+    currentStock:
+      features.currentStock,
+
     stockCoverageDays,
+
     recommendation,
+
     recommendedRestockQuantity,
+
     explanation,
+
     model: {
-      name: "Baseline Demand Calculation",
-      version: "fallback-1.0.0",
+      name:
+        "Baseline Demand Calculation",
+      version:
+        "fallback-1.0.0",
     },
   };
-  
 }
+
+
+
+// function createFallbackPrediction(features: {
+//   averageDailyDemand30: number;
+//   currentStock: number;
+// }) {
+//   const predictedDailyDemand =
+//     features.averageDailyDemand30;
+
+//   const predicted7DayDemand = Number(
+//     (predictedDailyDemand * 7).toFixed(2)
+//   );
+
+//   let stockCoverageDays = 0;
+
+//   if (predictedDailyDemand > 0) {
+//     stockCoverageDays = Number(
+//       (
+//         features.currentStock /
+//         predictedDailyDemand
+//       ).toFixed(2)
+//     );
+//   }
+
+//   let recommendation = "SUFFICIENT_STOCK";
+
+//   if (
+//     features.currentStock <
+//     predicted7DayDemand
+//   ) {
+//     recommendation = "RESTOCK_REQUIRED";
+//   } else if (
+//     features.currentStock <=
+//     predicted7DayDemand * 1.2
+//   ) {
+//     recommendation = "LOW_STOCK_RISK";
+//   }
+
+//   const recommendedRestockQuantity =
+//     recommendation === "RESTOCK_REQUIRED"
+//       ? Number(
+//           (
+//             predicted7DayDemand -
+//             features.currentStock
+//           ).toFixed(2)
+//         )
+//       : 0;
+
+//   let explanation = "";
+
+//   if (recommendation === "RESTOCK_REQUIRED") {
+//     explanation =
+//       "ML service is unavailable. A baseline demand calculation indicates that current stock is below expected demand.";
+//   } else if (recommendation === "LOW_STOCK_RISK") {
+//     explanation =
+//       "ML service is unavailable. A baseline demand calculation indicates that inventory is close to expected demand.";
+//   } else {
+//     explanation =
+//       "ML service is unavailable. A baseline demand calculation indicates that current stock is sufficient.";
+//   }
+
+//   return {
+//     predictedDailyDemand,
+//     predicted7DayDemand,
+//     currentStock: features.currentStock,
+//     stockCoverageDays,
+//     recommendation,
+//     recommendedRestockQuantity,
+//     explanation,
+//     model: {
+//       name: "Baseline Demand Calculation",
+//       version: "fallback-1.0.0",
+//     },
+//   };
+  
+// }

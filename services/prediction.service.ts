@@ -2,18 +2,62 @@ import { prisma } from "@/lib/prisma";
 
 const ML_SERVICE_URL =
   process.env.ML_SERVICE_URL || "http://localhost:8000";
-  const ML_SERVICE_TIMEOUT = Number(
-  process.env.ML_SERVICE_TIMEOUT || 5000
+
+const ML_SERVICE_TIMEOUT = Number(
+  process.env.ML_SERVICE_TIMEOUT || 3000
 );
+
 const ML_SERVICE_RETRIES = Number(
-  process.env.ML_SERVICE_RETRIES || 3
+  process.env.ML_SERVICE_RETRIES || 2
 );
-  export async function checkMLServiceHealth() {
+
+const ML_HEALTH_TIMEOUT = 1500;
+
+type DemandPredictionFeatures = {
+  salesLast7Days: number;
+  salesLast30Days: number;
+  averageDailyDemand7: number;
+  averageDailyDemand30: number;
+  demandTrend: number;
+  currentStock: number;
+  minimumStock: number;
+  maximumStock: number;
+  reorderPoint: number;
+};
+
+type MLPrediction = {
+  predictedDailyDemand: number;
+  explanation: string;
+  model: {
+    name: string;
+    version: string;
+  };
+};
+
+type DemandPredictionParams = {
+  days: number;
+  productId?: string;
+};
+
+/**
+ * Checks whether the Python ML service is available.
+ *
+ * A short timeout is intentionally used here because this
+ * health check should never make the pharmacy API slow.
+ */
+export async function checkMLServiceHealth() {
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, ML_HEALTH_TIMEOUT);
+
   try {
     const response = await fetch(
       `${ML_SERVICE_URL}/health`,
       {
         method: "GET",
+        signal: controller.signal,
       }
     );
 
@@ -29,7 +73,8 @@ const ML_SERVICE_RETRIES = Number(
     return {
       available: data.success === true,
       status: data.status || "unknown",
-      service: data.service || "Pharmix ML Service",
+      service:
+        data.service || "Pharmix ML Service",
     };
   } catch (error) {
     console.error(
@@ -41,30 +86,22 @@ const ML_SERVICE_RETRIES = Number(
       available: false,
       status: "unavailable",
     };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
-type DemandPredictionParams = {
-  days: number;
-  productId?: string;
-};
-
-async function predictWithMLService(features: {
-  salesLast7Days: number;
-  salesLast30Days: number;
-  averageDailyDemand7: number;
-  averageDailyDemand30: number;
-  demandTrend: number;
-  currentStock: number;
-  minimumStock: number;
-  maximumStock: number;
-  reorderPoint: number;
-}) {
+/**
+ * Sends prediction features to the Python ML service.
+ */
+async function predictWithMLService(
+  features: DemandPredictionFeatures
+): Promise<MLPrediction> {
   const controller = new AbortController();
 
-const timeout = setTimeout(() => {
-  controller.abort();
-}, ML_SERVICE_TIMEOUT);
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, ML_SERVICE_TIMEOUT);
 
   try {
     const response = await fetch(
@@ -78,20 +115,28 @@ const timeout = setTimeout(() => {
         body: JSON.stringify({
           sales_last_7_days:
             features.salesLast7Days,
+
           sales_last_30_days:
             features.salesLast30Days,
+
           average_daily_demand_7:
             features.averageDailyDemand7,
+
           average_daily_demand_30:
             features.averageDailyDemand30,
+
           demand_trend:
             features.demandTrend,
+
           current_stock:
             features.currentStock,
+
           minimum_stock:
             features.minimumStock,
+
           maximum_stock:
             features.maximumStock,
+
           reorder_point:
             features.reorderPoint,
         }),
@@ -108,7 +153,18 @@ const timeout = setTimeout(() => {
 
     if (!data.success) {
       throw new Error(
-        data.message || "ML prediction failed"
+        data.message ||
+          "ML prediction failed"
+      );
+    }
+
+    if (
+      !data.prediction ||
+      typeof data.prediction.predictedDailyDemand !==
+        "number"
+    ) {
+      throw new Error(
+        "ML service returned an invalid prediction"
       );
     }
 
@@ -118,17 +174,16 @@ const timeout = setTimeout(() => {
   }
 }
 
-async function predictWithRetry(features: {
-  salesLast7Days: number;
-  salesLast30Days: number;
-  averageDailyDemand7: number;
-  averageDailyDemand30: number;
-  demandTrend: number;
-  currentStock: number;
-  minimumStock: number;
-  maximumStock: number;
-  reorderPoint: number;
-}) {
+/**
+ * Retries ML prediction when the ML service is
+ * temporarily unavailable.
+ *
+ * Retries are deliberately limited so the pharmacy
+ * API does not become slow when the ML service fails.
+ */
+async function predictWithRetry(
+  features: DemandPredictionFeatures
+): Promise<MLPrediction> {
   let lastError: unknown;
 
   for (
@@ -137,7 +192,9 @@ async function predictWithRetry(features: {
     attempt++
   ) {
     try {
-      return await predictWithMLService(features);
+      return await predictWithMLService(
+        features
+      );
     } catch (error) {
       lastError = error;
 
@@ -146,9 +203,11 @@ async function predictWithRetry(features: {
         error
       );
 
-      if (attempt < ML_SERVICE_RETRIES) {
+      if (
+        attempt < ML_SERVICE_RETRIES
+      ) {
         await new Promise((resolve) =>
-          setTimeout(resolve, 1000)
+          setTimeout(resolve, 500)
         );
       }
     }
@@ -157,7 +216,79 @@ async function predictWithRetry(features: {
   throw lastError;
 }
 
+/**
+ * Returns the start of a calendar day in IST,
+ * represented as a UTC Date.
+ *
+ * Example:
+ * 2026-09-05 00:00 IST
+ * becomes
+ * 2026-09-04 18:30 UTC.
+ */
+function getISTCalendarDayStart(
+  date: Date
+): Date {
+  const dateParts =
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
 
+  const year = Number(
+    dateParts.find(
+      (part) => part.type === "year"
+    )?.value
+  );
+
+  const month = Number(
+    dateParts.find(
+      (part) => part.type === "month"
+    )?.value
+  );
+
+  const day = Number(
+    dateParts.find(
+      (part) => part.type === "day"
+    )?.value
+  );
+
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day)
+  ) {
+    throw new Error(
+      "Failed to calculate India calendar date"
+    );
+  }
+
+  // Midnight IST = previous day 18:30 UTC.
+  return new Date(
+    Date.UTC(
+      year,
+      month - 1,
+      day,
+      -5,
+      -30,
+      0,
+      0
+    )
+  );
+}
+
+/**
+ * Generates demand predictions for pharmacy products.
+ *
+ * Historical demand uses calendar days in Asia/Kolkata:
+ *
+ * 7-day window:
+ * today + previous 6 calendar days
+ *
+ * 30-day window:
+ * today + previous 29 calendar days
+ */
 export async function getDemandPredictions({
   days,
   productId,
@@ -168,39 +299,97 @@ export async function getDemandPredictions({
     );
   }
 
-  /*
-   * We always need at least 30 days of history
-   * because the ML model uses 7-day and 30-day features.
-   */
-  const startDate = new Date();
+  const now = new Date();
 
-  startDate.setDate(
-    startDate.getDate() - Math.max(days, 30)
+  /*
+   * Get the beginning of today in India time.
+   */
+  const todayStartIST =
+    getISTCalendarDayStart(now);
+
+  /*
+   * 7 calendar days including today.
+   *
+   * Example:
+   * Sep 5 → Aug 30 through Sep 5
+   */
+  const sevenDaysAgo =
+    new Date(todayStartIST);
+
+  sevenDaysAgo.setUTCDate(
+    sevenDaysAgo.getUTCDate() - 6
   );
 
-  const sales = await prisma.saleItem.findMany({
-    where: {
-      sale: {
-        createdAt: {
-          gte: startDate,
-        },
-      },
-      ...(productId ? { productId } : {}),
-    },
-    include: {
-      product: true,
-      sale: true,
-    },
-  });
+  /*
+   * 30 calendar days including today.
+   *
+   * Example:
+   * Sep 5 → Aug 7 through Sep 5
+   */
+  const thirtyDaysAgo =
+    new Date(todayStartIST);
+
+  thirtyDaysAgo.setUTCDate(
+    thirtyDaysAgo.getUTCDate() - 29
+  );
 
   /*
-   * Get inventory records required for prediction.
+   * We need at least 30 calendar days of
+   * history because the ML model uses both
+   * 7-day and 30-day demand features.
+   *
+   * If the requested forecast is longer than
+   * 30 days, retrieve enough history for it.
    */
-  const inventories = await prisma.inventory.findMany({
-    where: {
-      ...(productId ? { productId } : {}),
-    },
-  });
+  const historyStartDate =
+    new Date(todayStartIST);
+
+  historyStartDate.setUTCDate(
+    historyStartDate.getUTCDate() -
+      Math.max(days, 30) +
+      1
+  );
+
+  /*
+   * Get sales history.
+   */
+  const sales =
+    await prisma.saleItem.findMany({
+      where: {
+        sale: {
+          createdAt: {
+            gte: historyStartDate,
+          },
+        },
+
+        ...(productId
+          ? { productId }
+          : {}),
+      },
+
+      include: {
+        product: true,
+        sale: true,
+      },
+
+      orderBy: {
+        sale: {
+          createdAt: "asc",
+        },
+      },
+    });
+
+  /*
+   * Get inventory records.
+   */
+  const inventories =
+    await prisma.inventory.findMany({
+      where: {
+        ...(productId
+          ? { productId }
+          : {}),
+      },
+    });
 
   const inventoryMap = new Map(
     inventories.map((inventory) => [
@@ -210,8 +399,7 @@ export async function getDemandPredictions({
   );
 
   /*
-   * Group sales by product and calculate
-   * both 7-day and 30-day historical demand.
+   * Group sales by product.
    */
   const grouped = new Map<
     string,
@@ -223,66 +411,87 @@ export async function getDemandPredictions({
     }
   >();
 
-  const now = new Date();
-
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(
-    sevenDaysAgo.getDate() - 7
-  );
-
-  const thirtyDaysAgo = new Date(now);
-  thirtyDaysAgo.setDate(
-    thirtyDaysAgo.getDate() - 30
-  );
-
   for (const item of sales) {
-    const existing = grouped.get(
-      item.productId
-    );
-
-    if (!existing) {
+    if (!grouped.has(item.productId)) {
       grouped.set(item.productId, {
         productId: item.productId,
-        productName: item.product.name,
+        productName:
+          item.product.name,
         salesLast7Days: 0,
         salesLast30Days: 0,
       });
     }
 
-    const product = grouped.get(
-      item.productId
-    )!;
+    const product =
+      grouped.get(item.productId)!;
 
-    if (
-      item.sale.createdAt >= sevenDaysAgo
-    ) {
-      product.salesLast7Days += item.quantity;
+    const saleDate =
+      item.sale.createdAt;
+
+    /*
+     * Last 7 calendar days.
+     */
+    if (saleDate >= sevenDaysAgo) {
+      product.salesLast7Days +=
+        item.quantity;
     }
 
-    if (
-      item.sale.createdAt >= thirtyDaysAgo
-    ) {
-      product.salesLast30Days += item.quantity;
+    /*
+     * Last 30 calendar days.
+     */
+    if (saleDate >= thirtyDaysAgo) {
+      product.salesLast30Days +=
+        item.quantity;
     }
   }
 
   /*
-   * Generate predictions.
+   * Check the ML service ONCE.
+   *
+   * This is important for performance.
+   *
+   * If ML is down, every product immediately
+   * uses the fallback instead of performing
+   * multiple timeout + retry cycles.
    */
-  const predictions = await Promise.all(
-    Array.from(grouped.values()).map(
-      async (item) => {
+  const mlHealth =
+    await checkMLServiceHealth();
+
+  if (!mlHealth.available) {
+    console.warn(
+      "ML service unavailable. Using fallback predictions."
+    );
+  }
+
+  /*
+   * Generate predictions for all products.
+   */
+  const predictions =
+    await Promise.all(
+      Array.from(
+        grouped.values()
+      ).map(async (item) => {
         const inventory =
           inventoryMap.get(
             item.productId
           );
 
+        /*
+         * Historical demand averages.
+         */
         const averageDailyDemand7 =
           item.salesLast7Days / 7;
 
         const averageDailyDemand30 =
           item.salesLast30Days / 30;
 
+        /*
+         * Demand trend:
+         *
+         * > 1 = increasing
+         * = 1 = stable
+         * < 1 = decreasing
+         */
         let demandTrend = 0;
 
         if (
@@ -293,66 +502,83 @@ export async function getDemandPredictions({
             averageDailyDemand30;
         }
 
-        const features = {
-          salesLast7Days:
-            item.salesLast7Days,
+        /*
+         * Features sent to ML.
+         */
+        const features: DemandPredictionFeatures =
+          {
+            salesLast7Days:
+              item.salesLast7Days,
 
-          salesLast30Days:
-            item.salesLast30Days,
+            salesLast30Days:
+              item.salesLast30Days,
 
-          averageDailyDemand7:
-            Number(
-              averageDailyDemand7.toFixed(2)
-            ),
+            averageDailyDemand7:
+              Number(
+                averageDailyDemand7.toFixed(
+                  2
+                )
+              ),
 
-          averageDailyDemand30:
-            Number(
-              averageDailyDemand30.toFixed(2)
-            ),
+            averageDailyDemand30:
+              Number(
+                averageDailyDemand30.toFixed(
+                  2
+                )
+              ),
 
-          demandTrend:
-            Number(
-              demandTrend.toFixed(2)
-            ),
+            demandTrend:
+              Number(
+                demandTrend.toFixed(2)
+              ),
 
-          currentStock:
-            inventory?.quantity ?? 0,
+            currentStock:
+              inventory?.quantity ?? 0,
 
-          minimumStock:
-            inventory?.minimumStock ?? 0,
+            minimumStock:
+              inventory?.minimumStock ?? 0,
 
-          maximumStock:
-            inventory?.maximumStock ?? 0,
+            maximumStock:
+              inventory?.maximumStock ?? 0,
 
-          reorderPoint:
-            inventory?.reorderPoint ?? 0,
-        };
+            reorderPoint:
+              inventory?.reorderPoint ?? 0,
+          };
 
-        let mlPrediction;
+        let mlPrediction: MLPrediction;
 
-        try {
-          mlPrediction =
-            await predictWithRetry(
-              features
-            );
-        } catch (error) {
-          console.error(
-            "ML prediction failed. Using fallback:",
-            error
-          );
-
+        /*
+         * If ML is unavailable, do NOT retry.
+         * Immediately use the fallback.
+         */
+        if (!mlHealth.available) {
           mlPrediction =
             createFallbackPrediction(
               features,
               days
             );
+        } else {
+          try {
+            mlPrediction =
+              await predictWithRetry(
+                features
+              );
+          } catch (error) {
+            console.error(
+              "ML prediction failed. Using fallback:",
+              error
+            );
+
+            mlPrediction =
+              createFallbackPrediction(
+                features,
+                days
+              );
+          }
         }
 
         /*
-         * The ML model predicts daily demand.
-         *
-         * We calculate the requested forecast
-         * horizon from that daily prediction.
+         * ML predicts DAILY demand.
          */
         const predictedDailyDemand =
           Number(
@@ -361,6 +587,10 @@ export async function getDemandPredictions({
             ).toFixed(2)
           );
 
+        /*
+         * Convert daily demand into the
+         * requested forecast horizon.
+         */
         const predictedDemand =
           Number(
             (
@@ -370,8 +600,8 @@ export async function getDemandPredictions({
           );
 
         /*
-         * Keep the existing 7-day value for
-         * compatibility with the current UI.
+         * Keep the 7-day prediction for
+         * compatibility with existing APIs/UI.
          */
         const predicted7DayDemand =
           Number(
@@ -382,8 +612,7 @@ export async function getDemandPredictions({
           );
 
         /*
-         * Calculate stock coverage using
-         * predicted daily demand.
+         * Stock coverage.
          */
         let stockCoverageDays = 0;
 
@@ -400,8 +629,7 @@ export async function getDemandPredictions({
         }
 
         /*
-         * Calculate recommendation against
-         * the selected forecast horizon.
+         * Stock recommendation.
          */
         let recommendation =
           "SUFFICIENT_STOCK";
@@ -421,7 +649,7 @@ export async function getDemandPredictions({
         }
 
         /*
-         * Calculate recommended restock quantity.
+         * Recommended restock quantity.
          */
         const recommendedRestockQuantity =
           recommendation ===
@@ -444,18 +672,12 @@ export async function getDemandPredictions({
           features,
 
           prediction: {
-            /*
-             * Dynamic forecast fields.
-             */
             forecastDays: days,
 
             predictedDailyDemand,
 
             predictedDemand,
 
-            /*
-             * Backward-compatible field.
-             */
             predicted7DayDemand,
 
             currentStock:
@@ -468,39 +690,46 @@ export async function getDemandPredictions({
             recommendedRestockQuantity,
 
             explanation:
-              mlPrediction.explanation,
-
+  `Predicted daily demand is ${predictedDailyDemand.toFixed(2)} units. ` +
+  `Current stock covers approximately ${stockCoverageDays.toFixed(2)} days. ` +
+  (
+    recommendation === "RESTOCK_REQUIRED"
+      ? "Current stock is below the predicted demand. Restocking is required."
+      : recommendation === "LOW_STOCK_RISK"
+        ? "Current stock is close to the predicted demand. Restocking may be required soon."
+        : "Current stock is sufficient for the predicted demand. No immediate restocking is required."
+  ),
             model:
               mlPrediction.model,
           },
         };
-      }
-    )
-  );
+      })
+    );
 
   return predictions;
 }
 
+/**
+ * Fallback prediction used when the Python
+ * ML service is unavailable.
+ *
+ * Uses the 30-day average daily demand
+ * as a baseline estimate.
+ */
 function createFallbackPrediction(
   features: {
     averageDailyDemand30: number;
     currentStock: number;
   },
   days: number
-) {
-  /*
-   * Fallback uses the 30-day average
-   * as the estimated daily demand.
-   */
+): MLPrediction {
   const predictedDailyDemand =
     Number(
-      features.averageDailyDemand30.toFixed(2)
+      features.averageDailyDemand30.toFixed(
+        2
+      )
     );
 
-  /*
-   * Calculate demand for the requested
-   * forecast horizon.
-   */
   const predictedDemand =
     Number(
       (
@@ -509,10 +738,6 @@ function createFallbackPrediction(
       ).toFixed(2)
     );
 
-  /*
-   * Keep the existing 7-day calculation
-   * for backward compatibility.
-   */
   const predicted7DayDemand =
     Number(
       (
@@ -585,103 +810,13 @@ function createFallbackPrediction(
   return {
     predictedDailyDemand,
 
-    predictedDemand,
-
-    predicted7DayDemand,
-
-    currentStock:
-      features.currentStock,
-
-    stockCoverageDays,
-
-    recommendation,
-
-    recommendedRestockQuantity,
-
     explanation,
 
     model: {
       name:
         "Baseline Demand Calculation",
-      version:
-        "fallback-1.0.0",
+      version: "fallback-1.0.0",
     },
   };
 }
 
-
-
-// function createFallbackPrediction(features: {
-//   averageDailyDemand30: number;
-//   currentStock: number;
-// }) {
-//   const predictedDailyDemand =
-//     features.averageDailyDemand30;
-
-//   const predicted7DayDemand = Number(
-//     (predictedDailyDemand * 7).toFixed(2)
-//   );
-
-//   let stockCoverageDays = 0;
-
-//   if (predictedDailyDemand > 0) {
-//     stockCoverageDays = Number(
-//       (
-//         features.currentStock /
-//         predictedDailyDemand
-//       ).toFixed(2)
-//     );
-//   }
-
-//   let recommendation = "SUFFICIENT_STOCK";
-
-//   if (
-//     features.currentStock <
-//     predicted7DayDemand
-//   ) {
-//     recommendation = "RESTOCK_REQUIRED";
-//   } else if (
-//     features.currentStock <=
-//     predicted7DayDemand * 1.2
-//   ) {
-//     recommendation = "LOW_STOCK_RISK";
-//   }
-
-//   const recommendedRestockQuantity =
-//     recommendation === "RESTOCK_REQUIRED"
-//       ? Number(
-//           (
-//             predicted7DayDemand -
-//             features.currentStock
-//           ).toFixed(2)
-//         )
-//       : 0;
-
-//   let explanation = "";
-
-//   if (recommendation === "RESTOCK_REQUIRED") {
-//     explanation =
-//       "ML service is unavailable. A baseline demand calculation indicates that current stock is below expected demand.";
-//   } else if (recommendation === "LOW_STOCK_RISK") {
-//     explanation =
-//       "ML service is unavailable. A baseline demand calculation indicates that inventory is close to expected demand.";
-//   } else {
-//     explanation =
-//       "ML service is unavailable. A baseline demand calculation indicates that current stock is sufficient.";
-//   }
-
-//   return {
-//     predictedDailyDemand,
-//     predicted7DayDemand,
-//     currentStock: features.currentStock,
-//     stockCoverageDays,
-//     recommendation,
-//     recommendedRestockQuantity,
-//     explanation,
-//     model: {
-//       name: "Baseline Demand Calculation",
-//       version: "fallback-1.0.0",
-//     },
-//   };
-  
-// }

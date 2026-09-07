@@ -72,16 +72,15 @@ function calculateRiskScore({
 
     // Compare available stock with forecast demand.
     if (predictedDemand > 0) {
-      const stockCoverageRatio =
-        currentStock / predictedDemand;
-
-      if (stockCoverageRatio < 0.5) {
-        score += 40;
-      } else if (stockCoverageRatio < 1) {
-        score += 30;
-      } else if (stockCoverageRatio < 2) {
-        score += 15;
-      }
+     const forecastCoverageRatio =
+  currentStock / predictedDemand;
+     if (forecastCoverageRatio < 0.5) {
+  score += 40;
+} else if (forecastCoverageRatio < 1) {
+  score += 30;
+} else if (forecastCoverageRatio < 2) {
+  score += 15;
+}
     }
   }
 

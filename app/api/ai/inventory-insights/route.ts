@@ -5,36 +5,31 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-   const latitudeParam =
-  searchParams.get("latitude");
+    const latitudeParam = searchParams.get("latitude");
+    const longitudeParam = searchParams.get("longitude");
+    const daysParam = searchParams.get("days");
 
-const longitudeParam =
-  searchParams.get("longitude");
+    if (
+      latitudeParam === null ||
+      longitudeParam === null
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Latitude and longitude are required",
+        },
+        { status: 400 },
+      );
+    }
 
-const daysParam =
-  searchParams.get("days");
+    const latitude = Number(latitudeParam);
+    const longitude = Number(longitudeParam);
 
-if (
-  latitudeParam === null ||
-  longitudeParam === null
-) {
-  return NextResponse.json(
-    {
-      success: false,
-      message:
-        "Latitude and longitude are required",
-    },
-    { status: 400 },
-  );
-}
+    const days =
+      daysParam === null
+        ? 7
+        : Number(daysParam);
 
-const latitude = Number(latitudeParam);
-const longitude = Number(longitudeParam);
-
-const days =
-  daysParam === null
-    ? 7
-    : Number(daysParam);
     // Validate coordinates.
     if (
       !Number.isFinite(latitude) ||
@@ -43,7 +38,8 @@ const days =
       return NextResponse.json(
         {
           success: false,
-          message: "Valid latitude and longitude are required",
+          message:
+            "Valid latitude and longitude are required",
         },
         { status: 400 },
       );
@@ -53,7 +49,8 @@ const days =
       return NextResponse.json(
         {
           success: false,
-          message: "Latitude must be between -90 and 90",
+          message:
+            "Latitude must be between -90 and 90",
         },
         { status: 400 },
       );
@@ -63,7 +60,8 @@ const days =
       return NextResponse.json(
         {
           success: false,
-          message: "Longitude must be between -180 and 180",
+          message:
+            "Longitude must be between -180 and 180",
         },
         { status: 400 },
       );
@@ -79,7 +77,8 @@ const days =
       return NextResponse.json(
         {
           success: false,
-          message: "days must be an integer between 1 and 90",
+          message:
+            "days must be an integer between 1 and 90",
         },
         { status: 400 },
       );
@@ -88,8 +87,8 @@ const days =
     /*
      * Reuse the existing inventory intelligence engine.
      *
-     * This route is an AI/business-facing aggregation layer.
-     * Risk calculations remain inside inventory-intelligence.service.ts.
+     * Risk calculations remain inside
+     * inventory-intelligence.service.ts.
      */
     const intelligence =
       await getInventoryIntelligence({
@@ -100,10 +99,11 @@ const days =
 
     const products = intelligence.products;
 
-    const stockoutProducts = products.filter(
-      (product) =>
-        product.priority === "STOCKOUT",
-    );
+    const stockoutProducts =
+      products.filter(
+        (product) =>
+          product.priority === "STOCKOUT",
+      );
 
     const urgentRestockProducts =
       products.filter(
@@ -133,6 +133,65 @@ const days =
       products.length > 0
         ? products[0]
         : null;
+
+    /*
+     * Generate business actions from the
+     * existing inventory priority classification.
+     */
+    const recommendations =
+      products.map((product) => {
+        switch (product.priority) {
+          case "STOCKOUT":
+            return {
+              productId: product.productId,
+              productName: product.productName,
+              priority: "URGENT",
+              action: "RESTOCK_IMMEDIATELY",
+              message:
+                "Product is currently out of stock and requires immediate replenishment.",
+            };
+
+          case "URGENT_RESTOCK":
+            return {
+              productId: product.productId,
+              productName: product.productName,
+              priority: "HIGH",
+              action: "RESTOCK_NOW",
+              message:
+                "Current inventory requires urgent replenishment.",
+            };
+
+          case "RESTOCK":
+            return {
+              productId: product.productId,
+              productName: product.productName,
+              priority: "MEDIUM",
+              action: "PLAN_RESTOCK",
+              message:
+                "Inventory levels indicate that replenishment should be planned.",
+            };
+
+          case "MONITOR":
+            return {
+              productId: product.productId,
+              productName: product.productName,
+              priority: "LOW",
+              action: "MONITOR_INVENTORY",
+              message:
+                "Inventory should be monitored because demand and stock conditions may require attention.",
+            };
+
+          default:
+            return {
+              productId: product.productId,
+              productName: product.productName,
+              priority: "NONE",
+              action: "NO_ACTION",
+              message:
+                "Current inventory levels are healthy. No immediate action is required.",
+            };
+        }
+      });
 
     let overallStatus:
       | "CRITICAL"
@@ -186,6 +245,8 @@ const days =
           monitorProducts,
 
           healthyProducts,
+
+          recommendations,
         },
       },
       { status: 200 },
@@ -206,4 +267,3 @@ const days =
     );
   }
 }
-

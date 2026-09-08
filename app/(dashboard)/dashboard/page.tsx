@@ -7,7 +7,7 @@ import { StockMovement } from "@/components/dashboard/stock-movement";
 import { PaymentAnalytics } from "@/components/dashboard/payment-analytics";
 import { PredictionDashboard } from "@/components/dashboard/prediction-dashboard";
 import { redirect } from "next/navigation";
-
+import { getInventoryAlerts } from "@/services/inventory-alert.service";
 import {
   getDashboardSummary,
   getDashboardAlerts,

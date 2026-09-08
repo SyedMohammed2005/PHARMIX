@@ -107,6 +107,46 @@ export function AlertsPanel({
 
   const [aiError, setAIError] = useState("");
 
+  const [severityFilter, setSeverityFilter] = useState<
+    "ALL" | AIAlert["severity"]
+  >("ALL");
+
+  const [typeFilter, setTypeFilter] = useState<
+    "ALL" | AIAlert["type"]
+  >("ALL");
+
+  const filteredAIAlerts = aiAlerts
+    .filter((alert) => {
+      if (severityFilter === "ALL") {
+        return true;
+      }
+
+      return alert.severity === severityFilter;
+    })
+    .filter((alert) => {
+      if (typeFilter === "ALL") {
+        return true;
+      }
+
+      return alert.type === typeFilter;
+    })
+    .sort((a, b) => {
+      const severityOrder: Record<
+        AIAlert["severity"],
+        number
+      > = {
+        CRITICAL: 4,
+        HIGH: 3,
+        MEDIUM: 2,
+        LOW: 1,
+      };
+
+      return (
+        severityOrder[b.severity] -
+        severityOrder[a.severity]
+      );
+    });
+
   async function fetchAIAlerts(
     latitude: number,
     longitude: number
@@ -335,7 +375,7 @@ export function AlertsPanel({
 
       {/* AI Inventory Intelligence */}
       <div className="border-t border-gray-200 pt-6">
-        <div className="mb-5 flex items-start justify-between">
+        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
             <div className="rounded-lg bg-indigo-50 p-2">
               <Brain
@@ -356,11 +396,76 @@ export function AlertsPanel({
             </div>
           </div>
 
-          {aiSummary && (
-            <div className="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">
-              {aiSummary.totalAlerts} AI Alerts
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {aiSummary && (
+              <div className="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">
+                {aiSummary.totalAlerts} AI Alerts
+              </div>
+            )}
+
+            {!aiLoading && !aiError && (
+              <>
+                <select
+                  value={severityFilter}
+                  onChange={(event) =>
+                    setSeverityFilter(
+                      event.target.value as
+                        | "ALL"
+                        | AIAlert["severity"]
+                    )
+                  }
+                  className="rounded-lg border bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                >
+                  <option value="ALL">
+                    All Severities
+                  </option>
+                  <option value="CRITICAL">
+                    Critical
+                  </option>
+                  <option value="HIGH">
+                    High
+                  </option>
+                  <option value="MEDIUM">
+                    Medium
+                  </option>
+                  <option value="LOW">
+                    Low
+                  </option>
+                </select>
+
+                <select
+                  value={typeFilter}
+                  onChange={(event) =>
+                    setTypeFilter(
+                      event.target.value as
+                        | "ALL"
+                        | AIAlert["type"]
+                    )
+                  }
+                  className="rounded-lg border bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                >
+                  <option value="ALL">
+                    All Types
+                  </option>
+                  <option value="STOCKOUT">
+                    Stockout
+                  </option>
+                  <option value="RESTOCK_REQUIRED">
+                    Restock Required
+                  </option>
+                  <option value="LOW_STOCK">
+                    Low Stock
+                  </option>
+                  <option value="DEMAND_INCREASE">
+                    Demand Increase
+                  </option>
+                  <option value="EXPIRY_RISK">
+                    Expiry Risk
+                  </option>
+                </select>
+              </>
+            )}
+          </div>
         </div>
 
         {/* AI Loading */}
@@ -422,17 +527,56 @@ export function AlertsPanel({
             </div>
           )}
 
+        {/* Filter result count */}
+        {!aiLoading &&
+          !aiError &&
+          aiAlerts.length > 0 && (
+            <div className="mt-5 flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                Showing{" "}
+                <span className="font-semibold text-gray-900">
+                  {filteredAIAlerts.length}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-gray-900">
+                  {aiAlerts.length}
+                </span>{" "}
+                AI alerts
+              </p>
+
+              {(severityFilter !== "ALL" ||
+                typeFilter !== "ALL") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSeverityFilter("ALL");
+                    setTypeFilter("ALL");
+                  }}
+                  className="text-sm font-medium text-indigo-600 transition hover:text-indigo-800"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+          )}
+
         {/* AI Alert List */}
         {!aiLoading &&
           !aiError &&
           aiAlerts.length > 0 && (
-            <div className="mt-5 space-y-3">
-              {aiAlerts.map((alert) => (
-                <AIAlertCard
-                  key={alert.alertId}
-                  alert={alert}
-                />
-              ))}
+            <div className="mt-3">
+              {filteredAIAlerts.length === 0 ? (
+                <EmptyMessage message="No AI alerts match the selected filters." />
+              ) : (
+                <div className="space-y-3">
+                  {filteredAIAlerts.map((alert) => (
+                    <AIAlertCard
+                      key={alert.alertId}
+                      alert={alert}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -509,14 +653,10 @@ function AIAlertCard({
   alert: AIAlert;
 }) {
   const severityStyles = {
-    CRITICAL:
-      "border-red-200 bg-red-50",
-    HIGH:
-      "border-orange-200 bg-orange-50",
-    MEDIUM:
-      "border-amber-200 bg-amber-50",
-    LOW:
-      "border-gray-200 bg-gray-50",
+    CRITICAL: "border-red-200 bg-red-50",
+    HIGH: "border-orange-200 bg-orange-50",
+    MEDIUM: "border-amber-200 bg-amber-50",
+    LOW: "border-gray-200 bg-gray-50",
   };
 
   const severityText = {

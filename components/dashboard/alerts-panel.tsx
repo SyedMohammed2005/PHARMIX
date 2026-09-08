@@ -1,9 +1,14 @@
+"use client";
+
 import {
   AlertTriangle,
   PackageX,
   Clock3,
   CircleAlert,
+  Brain,
+  RefreshCw,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type ProductAlert = {
   id: string;
@@ -28,23 +33,61 @@ type BatchAlert = {
   };
 };
 
-type AlertsPanelProps = {
-  data: {
-    summary: {
-      lowStockCount: number;
-      outOfStockCount: number;
-      expiringCount: number;
-      expiredCount: number;
-      totalAlerts: number;
-    };
-
-    alerts: {
-      lowStock: ProductAlert[];
-      outOfStock: ProductAlert[];
-      expiringBatches: BatchAlert[];
-      expiredBatches: BatchAlert[];
-    };
+type PharmacyAlertsData = {
+  summary: {
+    lowStockCount: number;
+    outOfStockCount: number;
+    expiringCount: number;
+    expiredCount: number;
+    totalAlerts: number;
   };
+
+  alerts: {
+    lowStock: ProductAlert[];
+    outOfStock: ProductAlert[];
+    expiringBatches: BatchAlert[];
+    expiredBatches: BatchAlert[];
+  };
+};
+
+type AIAlert = {
+  alertId: string;
+  productId: string;
+  productName: string;
+  type:
+    | "STOCKOUT"
+    | "RESTOCK_REQUIRED"
+    | "LOW_STOCK"
+    | "DEMAND_INCREASE"
+    | "EXPIRY_RISK";
+  severity:
+    | "CRITICAL"
+    | "HIGH"
+    | "MEDIUM"
+    | "LOW";
+  message: string;
+  recommendedAction: string;
+};
+
+type AIAlertsResponse = {
+  success: boolean;
+  data: {
+    forecast: {
+      days: number;
+    };
+    summary: {
+      totalAlerts: number;
+      critical: number;
+      high: number;
+      medium: number;
+      low: number;
+    };
+    alerts: AIAlert[];
+  };
+};
+
+type AlertsPanelProps = {
+  data: PharmacyAlertsData;
 };
 
 export function AlertsPanel({
@@ -52,9 +95,98 @@ export function AlertsPanel({
 }: AlertsPanelProps) {
   const { summary, alerts } = data;
 
+  const [aiAlerts, setAIAlerts] = useState<AIAlert[]>(
+    []
+  );
+
+  const [aiSummary, setAISummary] = useState<
+    AIAlertsResponse["data"]["summary"] | null
+  >(null);
+
+  const [aiLoading, setAILoading] = useState(true);
+
+  const [aiError, setAIError] = useState("");
+
+  async function fetchAIAlerts(
+    latitude: number,
+    longitude: number
+  ) {
+    try {
+      setAILoading(true);
+      setAIError("");
+
+      const response = await fetch(
+        `/api/ai/inventory-alerts?latitude=${latitude}&longitude=${longitude}&days=7`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to fetch AI inventory alerts"
+        );
+      }
+
+      const result: AIAlertsResponse =
+        await response.json();
+
+      if (!result.success) {
+        throw new Error(
+          "AI inventory alert request failed"
+        );
+      }
+
+      setAIAlerts(result.data.alerts);
+      setAISummary(result.data.summary);
+    } catch (error) {
+      console.error(
+        "AI inventory alerts error:",
+        error
+      );
+
+      setAIError(
+        "Unable to load AI inventory alerts."
+      );
+    } finally {
+      setAILoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setAIError(
+        "Location access is not supported by this browser."
+      );
+      setAILoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        fetchAIAlerts(
+          position.coords.latitude,
+          position.coords.longitude
+        );
+      },
+      () => {
+        setAIError(
+          "Location permission is required for AI inventory intelligence."
+        );
+        setAILoading(false);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000,
+      }
+    );
+  }, []);
+
   return (
-    <section className="rounded-xl border bg-white p-6 shadow-sm">
-      <div className="mb-6 flex items-start justify-between">
+    <section className="space-y-6 rounded-xl border bg-white p-6 shadow-sm">
+      {/* Header */}
+      <div className="flex items-start justify-between">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">
             Pharmacy Alerts
@@ -70,119 +202,246 @@ export function AlertsPanel({
         </div>
       </div>
 
-      {/* Alert summary cards */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AlertSummary
-          title="Low Stock"
-          count={summary.lowStockCount}
-          icon={AlertTriangle}
-        />
-
-        <AlertSummary
-          title="Out of Stock"
-          count={summary.outOfStockCount}
-          icon={PackageX}
-        />
-
-        <AlertSummary
-          title="Expiring Soon"
-          count={summary.expiringCount}
-          icon={Clock3}
-        />
-
-        <AlertSummary
-          title="Expired"
-          count={summary.expiredCount}
-          icon={CircleAlert}
-        />
-      </div>
-
-      {/* Detailed alerts */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        {/* Low stock */}
-        <div>
-          <h3 className="mb-3 font-semibold text-gray-900">
-            Low Stock Products
+      {/* Existing Pharmacy Alerts */}
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900">
+            Inventory Alerts
           </h3>
 
-          {alerts.lowStock.length === 0 ? (
-            <EmptyMessage message="No low stock products." />
-          ) : (
-            <div className="space-y-3">
-              {alerts.lowStock.slice(0, 5).map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {item.product.name}
-                    </p>
+          <span className="text-xs font-medium text-gray-400">
+            Standard monitoring
+          </span>
+        </div>
 
-                    <p className="text-sm text-gray-500">
-                      SKU: {item.product.sku}
-                    </p>
-                  </div>
+        {/* Alert summary cards */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <AlertSummary
+            title="Low Stock"
+            count={summary.lowStockCount}
+            icon={AlertTriangle}
+          />
 
-                  <div className="text-right">
-                    <p className="font-semibold text-red-600">
-                      {item.quantity} units
-                    </p>
+          <AlertSummary
+            title="Out of Stock"
+            count={summary.outOfStockCount}
+            icon={PackageX}
+          />
 
-                    <p className="text-xs text-gray-500">
-                      Reorder at {item.reorderPoint}
-                    </p>
-                  </div>
-                </div>
+          <AlertSummary
+            title="Expiring Soon"
+            count={summary.expiringCount}
+            icon={Clock3}
+          />
+
+          <AlertSummary
+            title="Expired"
+            count={summary.expiredCount}
+            icon={CircleAlert}
+          />
+        </div>
+
+        {/* Detailed alerts */}
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          {/* Low stock */}
+          <div>
+            <h3 className="mb-3 font-semibold text-gray-900">
+              Low Stock Products
+            </h3>
+
+            {alerts.lowStock.length === 0 ? (
+              <EmptyMessage message="No low stock products." />
+            ) : (
+              <div className="space-y-3">
+                {alerts.lowStock
+                  .slice(0, 5)
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between rounded-lg border p-3"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {item.product.name}
+                        </p>
+
+                        <p className="text-sm text-gray-500">
+                          SKU: {item.product.sku}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="font-semibold text-red-600">
+                          {item.quantity} units
+                        </p>
+
+                        <p className="text-xs text-gray-500">
+                          Reorder at{" "}
+                          {item.reorderPoint}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+
+          {/* Expiring batches */}
+          <div>
+            <h3 className="mb-3 font-semibold text-gray-900">
+              Expiring Soon
+            </h3>
+
+            {alerts.expiringBatches.length === 0 ? (
+              <EmptyMessage message="No batches expiring soon." />
+            ) : (
+              <div className="space-y-3">
+                {alerts.expiringBatches
+                  .slice(0, 5)
+                  .map((batch) => (
+                    <div
+                      key={batch.id}
+                      className="flex items-center justify-between rounded-lg border p-3"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {batch.product.name}
+                        </p>
+
+                        <p className="text-sm text-gray-500">
+                          Batch: {batch.batchNumber}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="font-medium text-orange-600">
+                          {batch.quantity} units
+                        </p>
+
+                        <p className="text-xs text-gray-500">
+                          Expires{" "}
+                          {new Date(
+                            batch.expiryDate
+                          ).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* AI Inventory Intelligence */}
+      <div className="border-t border-gray-200 pt-6">
+        <div className="mb-5 flex items-start justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-indigo-50 p-2">
+              <Brain
+                size={20}
+                className="text-indigo-600"
+              />
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                AI Inventory Intelligence
+              </h3>
+
+              <p className="mt-1 text-sm text-gray-500">
+                AI-generated alerts from demand,
+                inventory, expiry, and seasonal signals.
+              </p>
+            </div>
+          </div>
+
+          {aiSummary && (
+            <div className="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">
+              {aiSummary.totalAlerts} AI Alerts
+            </div>
+          )}
+        </div>
+
+        {/* AI Loading */}
+        {aiLoading && (
+          <div className="flex items-center gap-3 rounded-lg border border-indigo-100 bg-indigo-50 p-5 text-sm text-indigo-700">
+            <RefreshCw
+              size={18}
+              className="animate-spin"
+            />
+
+            <span>
+              Generating AI inventory alerts...
+            </span>
+          </div>
+        )}
+
+        {/* AI Error */}
+        {!aiLoading && aiError && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+            <p className="text-sm font-medium text-amber-800">
+              {aiError}
+            </p>
+
+            <p className="mt-1 text-xs text-amber-700">
+              Standard pharmacy alerts are still
+              available above.
+            </p>
+          </div>
+        )}
+
+        {/* AI Summary */}
+        {!aiLoading &&
+          !aiError &&
+          aiSummary && (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <AIAlertSummary
+                label="Critical"
+                count={aiSummary.critical}
+                className="border-red-200 bg-red-50 text-red-700"
+              />
+
+              <AIAlertSummary
+                label="High"
+                count={aiSummary.high}
+                className="border-orange-200 bg-orange-50 text-orange-700"
+              />
+
+              <AIAlertSummary
+                label="Medium"
+                count={aiSummary.medium}
+                className="border-amber-200 bg-amber-50 text-amber-700"
+              />
+
+              <AIAlertSummary
+                label="Low"
+                count={aiSummary.low}
+                className="border-gray-200 bg-gray-50 text-gray-700"
+              />
+            </div>
+          )}
+
+        {/* AI Alert List */}
+        {!aiLoading &&
+          !aiError &&
+          aiAlerts.length > 0 && (
+            <div className="mt-5 space-y-3">
+              {aiAlerts.map((alert) => (
+                <AIAlertCard
+                  key={alert.alertId}
+                  alert={alert}
+                />
               ))}
             </div>
           )}
-        </div>
 
-        {/* Expiring batches */}
-        <div>
-          <h3 className="mb-3 font-semibold text-gray-900">
-            Expiring Soon
-          </h3>
-
-          {alerts.expiringBatches.length === 0 ? (
-            <EmptyMessage message="No batches expiring soon." />
-          ) : (
-            <div className="space-y-3">
-              {alerts.expiringBatches
-                .slice(0, 5)
-                .map((batch) => (
-                  <div
-                    key={batch.id}
-                    className="flex items-center justify-between rounded-lg border p-3"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {batch.product.name}
-                      </p>
-
-                      <p className="text-sm text-gray-500">
-                        Batch: {batch.batchNumber}
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="font-medium text-orange-600">
-                        {batch.quantity} units
-                      </p>
-
-                      <p className="text-xs text-gray-500">
-                        Expires{" "}
-                        {new Date(
-                          batch.expiryDate
-                        ).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-            </div>
+        {/* AI Empty */}
+        {!aiLoading &&
+          !aiError &&
+          aiAlerts.length === 0 && (
+            <EmptyMessage message="No AI inventory alerts detected." />
           )}
-        </div>
       </div>
     </section>
   );
@@ -216,6 +475,94 @@ function AlertSummary({
       <p className="mt-3 text-2xl font-bold text-gray-900">
         {count}
       </p>
+    </div>
+  );
+}
+
+function AIAlertSummary({
+  label,
+  count,
+  className,
+}: {
+  label: string;
+  count: number;
+  className: string;
+}) {
+  return (
+    <div
+      className={`rounded-lg border p-4 ${className}`}
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide">
+        {label}
+      </p>
+
+      <p className="mt-2 text-2xl font-bold">
+        {count}
+      </p>
+    </div>
+  );
+}
+
+function AIAlertCard({
+  alert,
+}: {
+  alert: AIAlert;
+}) {
+  const severityStyles = {
+    CRITICAL:
+      "border-red-200 bg-red-50",
+    HIGH:
+      "border-orange-200 bg-orange-50",
+    MEDIUM:
+      "border-amber-200 bg-amber-50",
+    LOW:
+      "border-gray-200 bg-gray-50",
+  };
+
+  const severityText = {
+    CRITICAL: "text-red-700",
+    HIGH: "text-orange-700",
+    MEDIUM: "text-amber-700",
+    LOW: "text-gray-700",
+  };
+
+  return (
+    <div
+      className={`rounded-lg border p-4 ${severityStyles[alert.severity]}`}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="font-semibold text-gray-900">
+              {alert.productName}
+            </h4>
+
+            <span
+              className={`rounded-full bg-white/70 px-2.5 py-1 text-xs font-bold ${severityText[alert.severity]}`}
+            >
+              {alert.severity}
+            </span>
+
+            <span className="rounded-full bg-white/70 px-2.5 py-1 text-xs font-medium text-gray-600">
+              {alert.type.replaceAll("_", " ")}
+            </span>
+          </div>
+
+          <p className="mt-2 text-sm text-gray-700">
+            {alert.message}
+          </p>
+        </div>
+
+        <div className="shrink-0 rounded-lg bg-white/70 p-3 sm:max-w-xs">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Recommended action
+          </p>
+
+          <p className="mt-1 text-sm font-medium text-gray-900">
+            {alert.recommendedAction}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Boxes,
   Brain,
+  Sparkles,
   ClipboardList,
   LayoutDashboard,
   Package,
@@ -127,10 +128,20 @@ const navigationItems: NavigationItem[] = [
     icon: BarChart3,
     roles: ["ADMIN", "BUSINESS_ANALYST"],
   },
-  {
+   {
     name: "Predictions",
     href: "/predictions",
     icon: Brain,
+    roles: [
+      "ADMIN",
+      "INVENTORY_MANAGER",
+      "BUSINESS_ANALYST",
+    ],
+  },
+  {
+    name: "AI Demand Intelligence",
+    href: "/ai",
+    icon: Sparkles,
     roles: [
       "ADMIN",
       "INVENTORY_MANAGER",

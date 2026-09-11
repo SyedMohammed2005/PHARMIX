@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Prediction = {
   productId: string;
   productName: string;
+
   features: {
     salesLast7Days: number;
     salesLast30Days: number;
@@ -16,14 +17,18 @@ type Prediction = {
     maximumStock: number;
     reorderPoint: number;
   };
+
   prediction: {
+    forecastDays: number;
     predictedDailyDemand: number;
+    predictedDemand: number;
     predicted7DayDemand: number;
     currentStock: number;
-    stockCoverageDays: number;
+    stockCoverageDays: number | null;
     recommendation: string;
     recommendedRestockQuantity: number;
     explanation: string;
+
     model: {
       name: string;
       version: string;
@@ -34,6 +39,7 @@ type Prediction = {
 type PredictionResponse = {
   success: boolean;
   count: number;
+
   prediction: {
     days: number;
     products: Prediction[];
@@ -88,8 +94,56 @@ export function PredictionDashboard() {
     fetchPredictions();
   }, [days]);
 
+  /*
+   * Prediction overview calculations
+   *
+   * These values are calculated from the prediction
+   * data already returned by /api/predictions.
+   *
+   * No additional API request is required.
+   */
+  const overview = useMemo(() => {
+    if (predictions.length === 0) {
+      return {
+        totalPredictedDemand: 0,
+        averageDailyDemand: 0,
+        productCount: 0,
+        highestDemandProduct: null as Prediction | null,
+      };
+    }
+
+    const totalPredictedDemand = predictions.reduce(
+      (total, item) =>
+        total + item.prediction.predictedDemand,
+      0
+    );
+
+    const averageDailyDemand =
+      totalPredictedDemand / days;
+
+    const highestDemandProduct =
+      predictions.reduce((highest, current) => {
+        if (!highest) {
+          return current;
+        }
+
+        return current.prediction.predictedDemand >
+          highest.prediction.predictedDemand
+          ? current
+          : highest;
+      }, null as Prediction | null);
+
+    return {
+      totalPredictedDemand,
+      averageDailyDemand,
+      productCount: predictions.length,
+      highestDemandProduct,
+    };
+  }, [predictions, days]);
+
   return (
     <section className="space-y-5 text-gray-900">
+
       {/* Header */}
       <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -162,132 +216,244 @@ export function PredictionDashboard() {
           </div>
         )}
 
-      {/* Predictions */}
+      {/* Prediction Content */}
       {!loading &&
         !error &&
         predictions.length > 0 && (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {predictions.map((item) => {
-              const prediction = item.prediction;
+          <>
+            {/* Overview */}
+            <div>
+              <div className="mb-3">
+                <h3 className="text-base font-semibold text-gray-900">
+                  Forecast Overview
+                </h3>
 
-              const isRestockRequired =
-                prediction.recommendation ===
-                "RESTOCK_REQUIRED";
+                <p className="mt-1 text-sm text-gray-500">
+                  Summary of the AI forecast for the next{" "}
+                  {days} days.
+                </p>
+              </div>
 
-              const isLowStockRisk =
-                prediction.recommendation ===
-                "LOW_STOCK_RISK";
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
-              return (
-                <div
-                  key={item.productId}
-                  className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  {/* Product Header */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="truncate font-semibold text-gray-900">
-                        {item.productName}
-                      </h3>
+                {/* Total Predicted Demand */}
+                <OverviewMetric
+                  label={`Total ${days}-day demand`}
+                  value={`${overview.totalPredictedDemand.toFixed(
+                    2
+                  )} units`}
+                  description="Expected demand across all analyzed products"
+                />
 
-                      <p className="mt-1 text-xs text-gray-500">
-                        {prediction.model.name}{" "}
-                        <span className="text-gray-400">
-                          v{prediction.model.version}
-                        </span>
-                      </p>
-                    </div>
+                {/* Average Daily Demand */}
+                <OverviewMetric
+                  label="Average daily demand"
+                  value={`${overview.averageDailyDemand.toFixed(
+                    2
+                  )} units`}
+                  description="Average forecasted demand per day"
+                />
 
-                    {/* Recommendation Badge */}
-                    <span
-                      className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        isRestockRequired
-                          ? "bg-red-100 text-red-700"
-                          : isLowStockRisk
-                          ? "bg-amber-100 text-amber-700"
-                          : "bg-emerald-100 text-emerald-700"
-                      }`}
+                {/* Products Analyzed */}
+                <OverviewMetric
+                  label="Products analyzed"
+                  value={`${overview.productCount}`}
+                  description="Products included in this forecast"
+                />
+
+                {/* Highest Demand */}
+                <OverviewMetric
+                  label="Highest demand"
+                  value={
+                    overview.highestDemandProduct
+                      ? overview.highestDemandProduct.productName
+                      : "N/A"
+                  }
+                  description={
+                    overview.highestDemandProduct
+                      ? `${overview.highestDemandProduct.prediction.predictedDemand.toFixed(
+                          2
+                        )} units expected`
+                      : "No demand data available"
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Predictions */}
+            <div>
+              <div className="mb-3">
+                <h3 className="text-base font-semibold text-gray-900">
+                  Product Predictions
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  AI-generated demand and inventory insights
+                  for each product.
+                </p>
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {predictions.map((item) => {
+                  const prediction = item.prediction;
+
+                  const isRestockRequired =
+                    prediction.recommendation ===
+                    "RESTOCK_REQUIRED";
+
+                  const isLowStockRisk =
+                    prediction.recommendation ===
+                    "LOW_STOCK_RISK";
+
+                  return (
+                    <div
+                      key={item.productId}
+                      className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                     >
-                      {prediction.recommendation.replaceAll(
-                        "_",
-                        " "
-                      )}
-                    </span>
-                  </div>
+                      {/* Product Header */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="truncate font-semibold text-gray-900">
+                            {item.productName}
+                          </h3>
 
-                  {/* Metrics */}
-                  <div className="mt-5 grid grid-cols-2 gap-3">
-                    <Metric
-                      label="Current stock"
-                      value={`${prediction.currentStock}`}
-                    />
+                          <p className="mt-1 text-xs text-gray-500">
+                            {prediction.model.name}{" "}
+                            <span className="text-gray-400">
+                              v{prediction.model.version}
+                            </span>
+                          </p>
+                        </div>
 
-                    <Metric
-                      label="Daily demand"
-                      value={`${prediction.predictedDailyDemand}`}
-                    />
+                        {/* Recommendation Badge */}
+                        <span
+                          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            isRestockRequired
+                              ? "bg-red-100 text-red-700"
+                              : isLowStockRisk
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-emerald-100 text-emerald-700"
+                          }`}
+                        >
+                          {prediction.recommendation.replaceAll(
+                            "_",
+                            " "
+                          )}
+                        </span>
+                      </div>
 
-                    <Metric
-                      label="7-day demand"
-                      value={`${prediction.predicted7DayDemand}`}
-                    />
+                      {/* Metrics */}
+                      <div className="mt-5 grid grid-cols-2 gap-3">
+                        <Metric
+                          label="Current stock"
+                          value={`${prediction.currentStock}`}
+                        />
 
-                    <Metric
-                      label="Coverage"
-                      value={`${prediction.stockCoverageDays} days`}
-                    />
-                  </div>
+                        <Metric
+                          label="Daily demand"
+                          value={`${prediction.predictedDailyDemand}`}
+                        />
 
-                  {/* Restock Recommendation */}
-                  <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
-                      Restock recommendation
-                    </p>
+                        <Metric
+                          label={`${prediction.forecastDays}-day demand`}
+                          value={`${prediction.predictedDemand}`}
+                        />
 
-                    <p className="mt-1 text-sm font-medium text-blue-950">
-                      {prediction.recommendedRestockQuantity >
-                      0
-                        ? `Restock ${prediction.recommendedRestockQuantity} units.`
-                        : "No immediate restocking required."}
-                    </p>
-                  </div>
+                        <Metric
+                          label="Coverage"
+                          value={
+                            prediction.stockCoverageDays !==
+                            null
+                              ? `${prediction.stockCoverageDays} days`
+                              : "N/A"
+                          }
+                        />
+                      </div>
 
-                  {/* AI Explanation */}
-                  <div className="mt-4 rounded-lg border border-indigo-100 bg-indigo-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
-                      AI explanation
-                    </p>
+                      {/* Restock Recommendation */}
+                      <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                          Restock recommendation
+                        </p>
 
-                    <p className="mt-1 text-sm leading-5 text-indigo-950">
-                      {prediction.explanation}
-                    </p>
-                  </div>
+                        <p className="mt-1 text-sm font-medium text-blue-950">
+                          {prediction.recommendedRestockQuantity >
+                          0
+                            ? `Restock ${prediction.recommendedRestockQuantity} units.`
+                            : "No immediate restocking required."}
+                        </p>
+                      </div>
 
-                  {/* Sales History */}
-                  <div className="mt-4 flex justify-between border-t border-gray-200 pt-3 text-xs text-gray-500">
-                    <span>
-                      Last 7 days:{" "}
-                      <strong className="font-semibold text-gray-700">
-                        {item.features.salesLast7Days}
-                      </strong>
-                    </span>
+                      {/* AI Explanation */}
+                      <div className="mt-4 rounded-lg border border-indigo-100 bg-indigo-50 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+                          AI explanation
+                        </p>
 
-                    <span>
-                      Last 30 days:{" "}
-                      <strong className="font-semibold text-gray-700">
-                        {item.features.salesLast30Days}
-                      </strong>
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                        <p className="mt-1 text-sm leading-5 text-indigo-950">
+                          {prediction.explanation}
+                        </p>
+                      </div>
+
+                      {/* Sales History */}
+                      <div className="mt-4 flex justify-between border-t border-gray-200 pt-3 text-xs text-gray-500">
+                        <span>
+                          Last 7 days:{" "}
+                          <strong className="font-semibold text-gray-700">
+                            {item.features.salesLast7Days}
+                          </strong>
+                        </span>
+
+                        <span>
+                          Last 30 days:{" "}
+                          <strong className="font-semibold text-gray-700">
+                            {item.features.salesLast30Days}
+                          </strong>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
         )}
     </section>
   );
 }
 
+/*
+ * Overview metric card
+ */
+function OverviewMetric({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        {label}
+      </p>
+
+      <p className="mt-2 truncate text-xl font-bold text-gray-900">
+        {value}
+      </p>
+
+      <p className="mt-1 text-xs leading-4 text-gray-500">
+        {description}
+      </p>
+    </div>
+  );
+}
+
+/*
+ * Product metric card
+ */
 function Metric({
   label,
   value,
@@ -307,4 +473,3 @@ function Metric({
     </div>
   );
 }
-

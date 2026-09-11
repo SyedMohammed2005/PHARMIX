@@ -84,6 +84,28 @@ type ChartPoint = {
   predictedDemand?: number;
 };
 
+type ModelPerformance = {
+  model: string;
+  version: string;
+  evaluation: {
+    mae: number;
+    rmse: number;
+    trainingRecords: number;
+    testRecords: number;
+  };
+  performance: {
+    level: string;
+    message: string;
+  };
+  evaluatedAt: string;
+};
+
+type ModelPerformanceResponse = {
+  success: boolean;
+  data: ModelPerformance;
+};
+
+
 export function PredictionDashboard() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [days, setDays] = useState(7);
@@ -103,6 +125,15 @@ export function PredictionDashboard() {
   const [chartLoading, setChartLoading] = useState(true);
   const [error, setError] = useState("");
   const [chartError, setChartError] = useState("");
+
+  const [modelPerformance, setModelPerformance] =
+  useState<ModelPerformance | null>(null);
+
+const [performanceLoading, setPerformanceLoading] =
+  useState(true);
+
+const [performanceError, setPerformanceError] =
+  useState("");
 
   /*
    * Fetch AI predictions
@@ -202,6 +233,52 @@ export function PredictionDashboard() {
     fetchDemandTrends();
   }, []);
 
+
+  useEffect(() => {
+  async function fetchModelPerformance() {
+    try {
+      setPerformanceLoading(true);
+      setPerformanceError("");
+
+      const response = await fetch(
+        "/api/predictions/performance",
+        {
+          cache: "no-store",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to fetch model performance",
+        );
+      }
+
+      const result: ModelPerformanceResponse =
+        await response.json();
+
+      if (!result.success) {
+        throw new Error(
+          "Model performance request failed",
+        );
+      }
+
+      setModelPerformance(result.data);
+    } catch (error) {
+      console.error(
+        "Model performance fetch error:",
+        error,
+      );
+
+      setPerformanceError(
+        "Unable to load model performance.",
+      );
+    } finally {
+      setPerformanceLoading(false);
+    }
+  }
+
+  fetchModelPerformance();
+}, []);
   /*
    * Select the first available prediction product
    * when prediction data loads.
@@ -491,6 +568,8 @@ export function PredictionDashboard() {
               </div>
             </div>
 
+            
+
             {/* Demand Visualization */}
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -677,6 +756,93 @@ export function PredictionDashboard() {
                   </>
                 )}
             </div>
+
+                        {/* Model Performance */}
+            <section>
+              <div className="mb-3">
+                <h3 className="text-base font-semibold text-gray-900">
+                  Model Performance
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Current accuracy metrics from the trained
+                  demand forecasting model.
+                </p>
+              </div>
+
+              {performanceLoading ? (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  {[1, 2, 3, 4].map((item) => (
+                    <div
+                      key={item}
+                      className="h-24 animate-pulse rounded-xl bg-gray-100"
+                    />
+                  ))}
+                </div>
+              ) : performanceError ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                  <p className="text-sm font-medium text-red-700">
+                    {performanceError}
+                  </p>
+                </div>
+              ) : modelPerformance ? (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <PerformanceMetric
+                      label="MAE"
+                      value={modelPerformance.evaluation.mae.toFixed(2)}
+                      description="Mean absolute error"
+                    />
+
+                    <PerformanceMetric
+                      label="RMSE"
+                      value={modelPerformance.evaluation.rmse.toFixed(2)}
+                      description="Root mean squared error"
+                    />
+
+                    <PerformanceMetric
+                      label="Model quality"
+                      value={modelPerformance.performance.level}
+                      description={`${modelPerformance.model} v${modelPerformance.version}`}
+                    />
+
+                    <PerformanceMetric
+                      label="Evaluation records"
+                      value={`${modelPerformance.evaluation.testRecords}`}
+                      description={`${modelPerformance.evaluation.trainingRecords} training records`}
+                    />
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                          Model assessment
+                        </p>
+                        <p className="mt-1 text-sm font-medium text-gray-900">
+                          {modelPerformance.performance.message}
+                        </p>
+                      </div>
+
+                      <span className="w-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                        {modelPerformance.performance.level}
+                      </span>
+                    </div>
+
+                    <p className="mt-3 text-xs text-gray-500">
+                      Evaluated{" "}
+                      {new Date(
+                        modelPerformance.evaluatedAt,
+                      ).toLocaleString()}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-500 shadow-sm">
+                  Model performance data is not available.
+                </div>
+              )}
+            </section>
 
             {/* Predictions */}
             <div>
@@ -972,6 +1138,35 @@ function Metric({
 
       <p className="mt-1 text-lg font-bold text-gray-900">
         {value}
+      </p>
+    </div>
+  );
+}
+
+/*
+ * Model performance metric card
+ */
+function PerformanceMetric({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        {label}
+      </p>
+
+      <p className="mt-2 text-2xl font-bold text-gray-900">
+        {value}
+      </p>
+
+      <p className="mt-1 text-xs text-gray-500">
+        {description}
       </p>
     </div>
   );

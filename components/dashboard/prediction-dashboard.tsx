@@ -105,6 +105,53 @@ type ModelPerformanceResponse = {
   data: ModelPerformance;
 };
 
+type PredictionMonitoringProduct = {
+  productId: string;
+  productName: string;
+
+  forecast: {
+    days: number;
+    predictedDailyDemand: number;
+    predictedDemand: number;
+    predicted7DayDemand: number;
+  };
+
+  inventory: {
+    currentStock: number;
+    stockCoverageDays: number | null;
+    minimumStock: number;
+    maximumStock: number;
+    reorderPoint: number;
+  };
+
+  prediction: {
+    recommendation: string;
+    model: {
+      name: string;
+      version: string;
+    };
+    explanation: string;
+  };
+
+  trend: {
+    direction: string;
+    growthPercentage: number;
+    averageWeeklyDemand: number;
+    recentAverageDemand: number;
+    previousAverageDemand: number;
+  };
+};
+
+type PredictionMonitoringResponse = {
+  success: boolean;
+  count: number;
+  data: {
+    forecast: {
+      days: number;
+    };
+    products: PredictionMonitoringProduct[];
+  };
+};
 
 export function PredictionDashboard() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -135,6 +182,15 @@ const [performanceLoading, setPerformanceLoading] =
 const [performanceError, setPerformanceError] =
   useState("");
 
+  const [monitoring, setMonitoring] = useState<
+  PredictionMonitoringProduct[]
+>([]);
+
+const [monitoringLoading, setMonitoringLoading] =
+  useState(true);
+
+const [monitoringError, setMonitoringError] =
+  useState("");
   /*
    * Fetch AI predictions
    */
@@ -279,6 +335,52 @@ const [performanceError, setPerformanceError] =
 
   fetchModelPerformance();
 }, []);
+
+useEffect(() => {
+  async function fetchPredictionMonitoring() {
+    try {
+      setMonitoringLoading(true);
+      setMonitoringError("");
+
+      const response = await fetch(
+        `/api/predictions/monitoring?days=${days}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to fetch prediction monitoring"
+        );
+      }
+
+      const result: PredictionMonitoringResponse =
+        await response.json();
+
+      if (!result.success) {
+        throw new Error(
+          "Prediction monitoring request failed"
+        );
+      }
+
+      setMonitoring(result.data.products);
+    } catch (error) {
+      console.error(
+        "Prediction monitoring fetch error:",
+        error
+      );
+
+      setMonitoringError(
+        "Unable to load prediction monitoring."
+      );
+    } finally {
+      setMonitoringLoading(false);
+    }
+  }
+
+  fetchPredictionMonitoring();
+}, [days]);
   /*
    * Select the first available prediction product
    * when prediction data loads.
@@ -843,6 +945,189 @@ const [performanceError, setPerformanceError] =
                 </div>
               )}
             </section>
+
+            {/* Prediction Monitoring */}
+<section>
+  <div className="mb-3">
+    <h3 className="text-base font-semibold text-gray-900">
+      Prediction Monitoring
+    </h3>
+
+    <p className="mt-1 text-sm text-gray-500">
+      Monitor forecast demand, inventory coverage, and
+      demand trends for the selected forecast period.
+    </p>
+  </div>
+
+  {monitoringLoading ? (
+    <div className="grid gap-4 md:grid-cols-2">
+      {[1, 2].map((item) => (
+        <div
+          key={item}
+          className="h-64 animate-pulse rounded-xl bg-gray-100"
+        />
+      ))}
+    </div>
+  ) : monitoringError ? (
+    <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+      <p className="text-sm font-medium text-red-700">
+        {monitoringError}
+      </p>
+    </div>
+  ) : monitoring.length === 0 ? (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 text-center text-sm text-gray-500 shadow-sm">
+      No prediction monitoring data is available.
+    </div>
+  ) : (
+    <div className="grid gap-5 md:grid-cols-2">
+      {monitoring.map((item) => {
+        const trendIsIncreasing =
+          item.trend.direction === "INCREASING";
+
+        const trendIsDecreasing =
+          item.trend.direction === "DECREASING";
+
+        return (
+          <div
+            key={item.productId}
+            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h4 className="truncate font-semibold text-gray-900">
+                  {item.productName}
+                </h4>
+
+                <p className="mt-1 text-xs text-gray-500">
+                  {item.prediction.model.name}{" "}
+                  v{item.prediction.model.version}
+                </p>
+              </div>
+
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  trendIsIncreasing
+                    ? "bg-amber-100 text-amber-700"
+                    : trendIsDecreasing
+                      ? "bg-red-100 text-red-700"
+                      : "bg-gray-100 text-gray-700"
+                }`}
+              >
+                {item.trend.direction.replaceAll(
+                  "_",
+                  " "
+                )}
+              </span>
+            </div>
+
+            {/* Forecast metrics */}
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <Metric
+                label="Daily demand"
+                value={`${item.forecast.predictedDailyDemand.toFixed(
+                  2
+                )} units`}
+              />
+
+              <Metric
+                label={`${days}-day forecast`}
+                value={`${item.forecast.predictedDemand.toFixed(
+                  2
+                )} units`}
+              />
+
+              <Metric
+                label="Current stock"
+                value={`${item.inventory.currentStock}`}
+              />
+
+              <Metric
+                label="Stock coverage"
+                value={
+                  item.inventory.stockCoverageDays !== null
+                    ? `${item.inventory.stockCoverageDays.toFixed(
+                        2
+                      )} days`
+                    : "N/A"
+                }
+              />
+            </div>
+
+            {/* Trend */}
+            <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Demand trend
+                </p>
+
+                <span
+                  className={`text-sm font-bold ${
+                    trendIsIncreasing
+                      ? "text-amber-700"
+                      : trendIsDecreasing
+                        ? "text-red-700"
+                        : "text-gray-700"
+                  }`}
+                >
+                  {item.trend.growthPercentage > 0
+                    ? "+"
+                    : ""}
+                  {item.trend.growthPercentage.toFixed(
+                    1
+                  )}
+                  %
+                </span>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <p className="text-gray-500">
+                    Recent weekly avg.
+                  </p>
+                  <p className="mt-1 font-semibold text-gray-900">
+                    {item.trend.recentAverageDemand.toFixed(
+                      2
+                    )}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500">
+                    Previous weekly avg.
+                  </p>
+                  <p className="mt-1 font-semibold text-gray-900">
+                    {item.trend.previousAverageDemand.toFixed(
+                      2
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recommendation */}
+            <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                Recommendation
+              </p>
+
+              <p className="mt-1 text-sm font-semibold text-blue-950">
+                {item.prediction.recommendation.replaceAll(
+                  "_",
+                  " "
+                )}
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-blue-900">
+                {item.prediction.explanation}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</section>
 
             {/* Predictions */}
             <div>

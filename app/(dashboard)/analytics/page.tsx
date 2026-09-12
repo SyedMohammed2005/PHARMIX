@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion"; 
+import { motion } from "framer-motion";
 
 import {
     Area,
@@ -13,6 +13,10 @@ import {
     Tooltip,
     XAxis,
     YAxis,
+    Cell,
+    Legend,
+    Pie,
+    PieChart,
 } from "recharts";
 
 import {
@@ -292,6 +296,55 @@ export default function AnalyticsPage() {
         })
     );
 
+    const ordersMap: Record<string, number> = {};
+
+    salesReport.sales.forEach((sale) => {
+        const date = new Date(sale.createdAt).toLocaleDateString(
+            "en-IN",
+            {
+                day: "2-digit",
+                month: "short",
+            }
+        );
+
+        if (!ordersMap[date]) {
+            ordersMap[date] = 0;
+        }
+
+        ordersMap[date] += 1;
+    });
+
+    const ordersTrendData = Object.entries(ordersMap)
+        .map(([date, orders]) => ({
+            date,
+            orders,
+        }))
+        .reverse();
+
+    const revenueQualityData = [
+        {
+            metric: "Gross Revenue",
+            amount: sales.totalRevenue,
+        },
+        {
+            metric: "Refunded",
+            amount: sales.totalRefunded,
+        },
+        {
+            metric: "Net Revenue",
+            amount: sales.netRevenue,
+        },
+    ];
+    const PAYMENT_COLORS = [
+        "#3b82f6",
+        "#8b5cf6",
+        "#10b981",
+        "#f59e0b",
+    ]; const paymentTotal = paymentChartData.reduce(
+        (total, payment) => total + payment.netAmount,
+        0
+    );
+
     // Business Performance KPIs
 
     const averageOrderValue =
@@ -313,6 +366,54 @@ export default function AnalyticsPage() {
         customers.totalCustomers > 0
             ? (customers.activeCustomers / customers.totalCustomers) * 100
             : 0;
+
+    // Advanced analytics derived only from data already returned by the existing report APIs.
+    // No synthetic product/category sales data is introduced.
+    const inventoryValueData = [
+        { metric: "Cost Value", amount: inventory.totalInventoryValue },
+        { metric: "Selling Value", amount: inventory.totalSellingValue },
+        { metric: "Potential Profit", amount: inventory.potentialProfit },
+    ];
+
+    const stockHealthData = [
+        { name: "Healthy Stock", value: Math.max(inventory.totalProducts - inventory.lowStockCount - inventory.outOfStockCount, 0) },
+        { name: "Low Stock", value: inventory.lowStockCount },
+        { name: "Out of Stock", value: inventory.outOfStockCount },
+    ].filter((item) => item.value > 0);
+
+    const customerActivityData = [
+        { name: "Active", value: customers.activeCustomers },
+        { name: "Inactive", value: customers.inactiveCustomers },
+    ].filter((item) => item.value > 0);
+
+    const customerRevenueData = [...customerReport.topCustomers]
+        .sort((a, b) => b.totalSpent - a.totalSpent)
+        .slice(0, 6)
+        .map((customer) => ({
+            name: customer.name.length > 16 ? `${customer.name.slice(0, 16)}…` : customer.name,
+            revenue: customer.totalSpent,
+        }));
+
+    const financialQualityData = [
+        { metric: "Subtotal", amount: sales.totalSubtotal },
+        { metric: "Tax", amount: sales.totalTax },
+        { metric: "Discount", amount: sales.totalDiscount },
+        { metric: "Refunded", amount: sales.totalRefunded },
+        { metric: "Net Revenue", amount: sales.netRevenue },
+    ];
+
+    const lowStockByCategoryMap: Record<string, number> = {};
+    inventoryReport.lowStockProducts.forEach((product) => {
+        const category = product.category || "Uncategorized";
+        lowStockByCategoryMap[category] = (lowStockByCategoryMap[category] || 0) + 1;
+    });
+
+    const lowStockCategoryData = Object.entries(lowStockByCategoryMap)
+        .map(([category, products]) => ({ category, products }))
+        .sort((a, b) => b.products - a.products)
+        .slice(0, 8);
+
+    const PRODUCT_COLORS = ["#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#ef4444", "#06b6d4"];
 
 
     return (
@@ -346,8 +447,8 @@ export default function AnalyticsPage() {
                 <button
                     onClick={() => setDateRange("today")}
                     className={`rounded-xl px-4 py-2 text-sm font-medium transition ${dateRange === "today"
-                            ? "bg-emerald-600 text-white shadow-md"
-                            : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                        ? "bg-emerald-600 text-white shadow-md"
+                        : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                         }`}
                 >
                     Today
@@ -356,8 +457,8 @@ export default function AnalyticsPage() {
                 <button
                     onClick={() => setDateRange("7days")}
                     className={`rounded-xl px-4 py-2 text-sm font-medium transition ${dateRange === "7days"
-                            ? "bg-emerald-600 text-white shadow-md"
-                            : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                        ? "bg-emerald-600 text-white shadow-md"
+                        : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                         }`}
                 >
                     Last 7 Days
@@ -366,8 +467,8 @@ export default function AnalyticsPage() {
                 <button
                     onClick={() => setDateRange("30days")}
                     className={`rounded-xl px-4 py-2 text-sm font-medium transition ${dateRange === "30days"
-                            ? "bg-emerald-600 text-white shadow-md"
-                            : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                        ? "bg-emerald-600 text-white shadow-md"
+                        : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                         }`}
                 >
                     Last 30 Days
@@ -376,8 +477,8 @@ export default function AnalyticsPage() {
                 <button
                     onClick={() => setDateRange("all")}
                     className={`rounded-xl px-4 py-2 text-sm font-medium transition ${dateRange === "all"
-                            ? "bg-emerald-600 text-white shadow-md"
-                            : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                        ? "bg-emerald-600 text-white shadow-md"
+                        : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                         }`}
                 >
                     All Time
@@ -510,13 +611,13 @@ export default function AnalyticsPage() {
             {/* Main Summary Cards */}
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
 
-               <motion.div
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.5 }}
-  whileHover={{ y: -5 }}
-  className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
->
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    whileHover={{ y: -5 }}
+                    className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
+                >
                     <div className="flex items-center justify-between">
                         <div className="rounded-xl bg-emerald-100 p-3">
                             <IndianRupee className="h-6 w-6 text-emerald-600" />
@@ -695,9 +796,141 @@ export default function AnalyticsPage() {
 
             </div>
 
+            {/* Sales Intelligence */}
+            <div>
+                <div className="mb-5">
+                    <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+                        <TrendingUp className="h-6 w-6 text-blue-600" />
+                        Sales Intelligence
+                    </h2>
+
+                    <p className="mt-1 text-sm text-gray-500">
+                        Understand order volume and revenue quality over the selected period
+                    </p>
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-2">
+
+                    {/* Orders Trend */}
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900">
+                                    Orders Trend
+                                </h3>
+
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Number of orders generated each day
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-blue-100 p-3">
+                                <ShoppingCart className="h-6 w-6 text-blue-600" />
+                            </div>
+                        </div>
+
+                        <div className="mt-8 h-[320px]">
+                            {ordersTrendData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={ordersTrendData}>
+                                        <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            vertical={false}
+                                        />
+
+                                        <XAxis
+                                            dataKey="date"
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
+
+                                        <YAxis
+                                            allowDecimals={false}
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
+
+                                        <Tooltip
+                                            formatter={(value) =>
+                                                `${Number(value)} orders`
+                                            }
+                                        />
+
+                                        <Bar
+                                            dataKey="orders"
+                                            name="Orders"
+                                            radius={[8, 8, 0, 0]}
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                                    No order data available
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Revenue Quality */}
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900">
+                                    Revenue Quality
+                                </h3>
+
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Gross revenue compared with refunds and net revenue
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-emerald-100 p-3">
+                                <IndianRupee className="h-6 w-6 text-emerald-600" />
+                            </div>
+                        </div>
+
+                        <div className="mt-8 h-[320px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={revenueQualityData}>
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        vertical={false}
+                                    />
+
+                                    <XAxis
+                                        dataKey="metric"
+                                        tickLine={false}
+                                        axisLine={false}
+                                    />
+
+                                    <YAxis
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickFormatter={(value) => `₹${value}`}
+                                    />
+
+                                    <Tooltip
+                                        formatter={(value) =>
+                                            formatCurrency(Number(value))
+                                        }
+                                    />
+
+                                    <Bar
+                                        dataKey="amount"
+                                        name="Amount"
+                                        radius={[8, 8, 0, 0]}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
             {/* 👇 ADD PAYMENT CHARTS HERE */}
 
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
 
                 {/* Payment Performance */}
                 <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -826,6 +1059,92 @@ export default function AnalyticsPage() {
 
                     </div>
 
+                </div>
+                {/* Payment Mix */}
+                <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="rounded-xl bg-purple-100 p-3">
+                            <Wallet className="h-6 w-6 text-purple-600" />
+                        </div>
+
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">
+                                Payment Mix
+                            </h2>
+
+                            <p className="text-sm text-gray-500">
+                                Net revenue distribution
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="relative mt-6 h-[320px]">
+                        {paymentChartData.length > 0 && paymentTotal > 0 ? (
+                            <>
+                                <ResponsiveContainer
+                                    width="100%"
+                                    height="100%"
+                                >
+                                    <PieChart>
+                                        <Pie
+                                            data={paymentChartData}
+                                            dataKey="netAmount"
+                                            nameKey="method"
+                                            cx="50%"
+                                            cy="45%"
+                                            innerRadius={72}
+                                            outerRadius={105}
+                                            paddingAngle={3}
+                                            cornerRadius={5}
+                                            isAnimationActive={true}
+                                            animationDuration={800}
+                                        >
+                                            {paymentChartData.map(
+                                                (entry, index) => (
+                                                    <Cell
+                                                        key={`payment-cell-${entry.method}`}
+                                                        fill={
+                                                            PAYMENT_COLORS[
+                                                            index %
+                                                            PAYMENT_COLORS.length
+                                                            ]
+                                                        }
+                                                    />
+                                                )
+                                            )}
+                                        </Pie>
+
+                                        <Tooltip
+                                            formatter={(value) =>
+                                                formatCurrency(Number(value))
+                                            }
+                                        />
+
+                                        <Legend
+                                            verticalAlign="bottom"
+                                            height={36}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+
+                                <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-10">
+                                    <div className="text-center">
+                                        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                                            Net Revenue
+                                        </p>
+
+                                        <p className="mt-1 text-xl font-bold text-gray-900">
+                                            {formatCurrency(paymentTotal)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                                No payment data available
+                            </div>
+                        )}
+                    </div>
                 </div>
 
             </div>
@@ -1108,6 +1427,310 @@ export default function AnalyticsPage() {
                     </div>
                 </div>
 
+            </div>
+
+            {/* Product & Stock Intelligence */}
+            <div>
+                <div className="mb-5">
+                    <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+                        <Package className="h-6 w-6 text-orange-600" />
+                        Product & Stock Intelligence
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Identify inventory health and products that require attention
+                    </p>
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900">Inventory Value Analysis</h3>
+                                <p className="mt-1 text-sm text-gray-500">Cost, selling value and potential profit</p>
+                            </div>
+                            <IndianRupee className="h-6 w-6 text-emerald-600" />
+                        </div>
+                        <div className="mt-8 h-[320px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={inventoryValueData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="metric" tickLine={false} axisLine={false} />
+                                    <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
+                                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                                    <Bar dataKey="amount" name="Value" radius={[8, 8, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900">Stock Health</h3>
+                                <p className="mt-1 text-sm text-gray-500">Current product availability status</p>
+                            </div>
+                            <AlertTriangle className="h-6 w-6 text-orange-600" />
+                        </div>
+                        <div className="relative mt-6 h-[320px]">
+                            {stockHealthData.length > 0 ? (
+                                <>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={stockHealthData}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="45%"
+                                                innerRadius={72}
+                                                outerRadius={105}
+                                                paddingAngle={3}
+                                                cornerRadius={5}
+                                                isAnimationActive={true}
+                                                animationDuration={800}
+                                            >
+                                                {stockHealthData.map((entry, index) => (
+                                                    <Cell key={`stock-${entry.name}`} fill={PRODUCT_COLORS[index % PRODUCT_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip formatter={(value) => `${Number(value)} products`} />
+                                            <Legend verticalAlign="bottom" height={36} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-10">
+                                        <div className="text-center">
+                                            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Products</p>
+                                            <p className="mt-1 text-xl font-bold text-gray-900">{inventory.totalProducts}</p>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex h-full items-center justify-center text-sm text-gray-400">No inventory data available</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-900">Low Stock Products</h3>
+                            <p className="mt-1 text-sm text-gray-500">Products currently at or below their reorder threshold</p>
+                        </div>
+                        <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600">{inventory.lowStockCount} alerts</span>
+                    </div>
+                    <div className="mt-6 h-[320px]">
+                        {inventoryReport.lowStockProducts.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                    data={inventoryReport.lowStockProducts.slice(0, 8).map((product) => ({
+                                        name: product.name.length > 18 ? `${product.name.slice(0, 18)}…` : product.name,
+                                        quantity: product.quantity,
+                                        reorderPoint: product.reorderPoint,
+                                    }))}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="quantity" name="Current Stock" radius={[8, 8, 0, 0]} />
+                                    <Bar dataKey="reorderPoint" name="Reorder Point" radius={[8, 8, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex h-full items-center justify-center text-sm text-emerald-600">All products are above their reorder thresholds 🎉</div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Category Intelligence */}
+            <div>
+                <div className="mb-5">
+                    <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+                        <BarChart3 className="h-6 w-6 text-indigo-600" />
+                        Category Intelligence
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-500">Low-stock concentration across available product categories</p>
+                </div>
+                <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                    <div className="h-[320px]">
+                        {lowStockCategoryData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={lowStockCategoryData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="category" tickLine={false} axisLine={false} />
+                                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                                    <Tooltip formatter={(value) => `${Number(value)} low-stock products`} />
+                                    <Bar dataKey="products" name="Low Stock Products" radius={[8, 8, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex h-full items-center justify-center text-sm text-gray-400">No low-stock category data available</div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Customer Intelligence */}
+            <div>
+                <div className="mb-5">
+                    <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+                        <Users className="h-6 w-6 text-purple-600" />
+                        Customer Intelligence
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-500">Customer activity and highest-value customers</p>
+                </div>
+                <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <h3 className="text-xl font-bold text-gray-900">Customer Activity</h3>
+                        <p className="mt-1 text-sm text-gray-500">Active versus inactive customers</p>
+                        <div className="relative mt-6 h-[320px]">
+                            {customerActivityData.length > 0 ? (
+                                <>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie data={customerActivityData} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={72} outerRadius={105} paddingAngle={3} cornerRadius={5} isAnimationActive={true} animationDuration={800}>
+                                                {customerActivityData.map((entry, index) => (
+                                                    <Cell key={`customer-${entry.name}`} fill={PRODUCT_COLORS[index % PRODUCT_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip formatter={(value) => `${Number(value)} customers`} />
+                                            <Legend verticalAlign="bottom" height={36} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-10">
+                                        <div className="text-center">
+                                            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Total</p>
+                                            <p className="mt-1 text-xl font-bold text-gray-900">{customers.totalCustomers}</p>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex h-full items-center justify-center text-sm text-gray-400">No customer data available</div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <h3 className="text-xl font-bold text-gray-900">Top Customer Revenue</h3>
+                        <p className="mt-1 text-sm text-gray-500">Highest spending customers</p>
+                        <div className="mt-8 h-[320px]">
+                            {customerRevenueData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={customerRevenueData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                                        <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
+                                        <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                                        <Bar dataKey="revenue" name="Customer Revenue" radius={[8, 8, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="flex h-full items-center justify-center text-sm text-gray-400">No customer revenue data available</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Returns & Refund Intelligence */}
+            <div>
+                <div className="mb-5">
+                    <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+                        <RefreshCw className="h-6 w-6 text-red-600" />
+                        Returns & Refund Intelligence
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-500">Track refund pressure and payment-method refund exposure</p>
+                </div>
+                <div className="grid gap-5 md:grid-cols-3">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <p className="text-sm text-gray-500">Refunded Amount</p>
+                        <p className="mt-2 text-2xl font-bold text-red-600">{formatCurrency(sales.totalRefunded)}</p>
+                        <p className="mt-2 text-xs text-gray-400">Total value returned to customers</p>
+                    </div>
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <p className="text-sm text-gray-500">Refund Rate</p>
+                        <p className="mt-2 text-2xl font-bold text-orange-600">{refundRate.toFixed(1)}%</p>
+                        <p className="mt-2 text-xs text-gray-400">Refunded amount as a share of gross revenue</p>
+                    </div>
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <p className="text-sm text-gray-500">Net Revenue Retained</p>
+                        <p className="mt-2 text-2xl font-bold text-emerald-600">{formatCurrency(sales.netRevenue)}</p>
+                        <p className="mt-2 text-xs text-gray-400">Revenue remaining after refunds</p>
+                    </div>
+                </div>
+                <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                    <div className="h-[320px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={paymentChartData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="method" tickLine={false} axisLine={false} />
+                                <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
+                                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                                <Legend />
+                                <Bar dataKey="netAmount" name="Net Revenue" radius={[8, 8, 0, 0]} />
+                                <Bar dataKey="refundedAmount" name="Refunded" radius={[8, 8, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            {/* Business Intelligence */}
+            <div>
+                <div className="mb-5">
+                    <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+                        <DollarSign className="h-6 w-6 text-emerald-600" />
+                        Business Intelligence
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-500">Financial quality indicators for management decisions</p>
+                </div>
+                <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <h3 className="text-xl font-bold text-gray-900">Financial Quality</h3>
+                        <p className="mt-1 text-sm text-gray-500">Subtotal, tax, discounts, refunds and retained revenue</p>
+                        <div className="mt-8 h-[320px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={financialQualityData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="metric" tickLine={false} axisLine={false} />
+                                    <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
+                                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                                    <Bar dataKey="amount" name="Amount" radius={[8, 8, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <h3 className="text-xl font-bold text-gray-900">Management Snapshot</h3>
+                        <p className="mt-1 text-sm text-gray-500">Key signals to review before operational decisions</p>
+                        <div className="mt-6 space-y-4">
+                            <div className="flex items-center justify-between rounded-xl bg-gray-50 p-4">
+                                <div><p className="font-semibold text-gray-900">Potential Inventory Profit</p><p className="text-xs text-gray-500">If current stock sells at current selling values</p></div>
+                                <span className="font-bold text-emerald-600">{formatCurrency(inventory.potentialProfit)}</span>
+                            </div>
+                            <div className="flex items-center justify-between rounded-xl bg-gray-50 p-4">
+                                <div><p className="font-semibold text-gray-900">Average Order Value</p><p className="text-xs text-gray-500">Net revenue per order</p></div>
+                                <span className="font-bold text-blue-600">{formatCurrency(averageOrderValue)}</span>
+                            </div>
+                            <div className="flex items-center justify-between rounded-xl bg-gray-50 p-4">
+                                <div><p className="font-semibold text-gray-900">Items Per Order</p><p className="text-xs text-gray-500">Average units sold per order</p></div>
+                                <span className="font-bold text-purple-600">{itemsPerOrder.toFixed(1)}</span>
+                            </div>
+                            <div className="flex items-center justify-between rounded-xl bg-gray-50 p-4">
+                                <div><p className="font-semibold text-gray-900">Customer Activity</p><p className="text-xs text-gray-500">Active customers as a share of customer base</p></div>
+                                <span className="font-bold text-emerald-600">{customerActivityRate.toFixed(1)}%</span>
+                            </div>
+                            <div className="flex items-center justify-between rounded-xl bg-gray-50 p-4">
+                                <div><p className="font-semibold text-gray-900">Expired Batches</p><p className="text-xs text-gray-500">Inventory batches requiring action</p></div>
+                                <span className="font-bold text-red-600">{inventory.expiredBatchCount}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Alerts */}

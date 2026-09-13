@@ -1,4 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/services/audit.service";
+import {
+  AuditAction,
+  Prisma,
+} from "../src/generated/prisma/client";
 
 export async function getProducts(params: {
   search?: string;
@@ -153,7 +158,7 @@ export async function createProduct(data: {
     );
   }
 
-  return prisma.product.create({
+  const product = await prisma.product.create({
     data: {
       name: data.name,
       genericName: data.genericName,
@@ -179,6 +184,16 @@ export async function createProduct(data: {
       batches: true,
     },
   });
+
+  await createAuditLog({
+    action: AuditAction.CREATE,
+    entity: "Product",
+    entityId: product.id,
+    description: `Product "${product.name}" was created`,
+    afterData: product,
+  });
+
+  return product;
 }
 
 export async function updateProduct(
@@ -215,7 +230,7 @@ export async function updateProduct(
     }
   }
 
-  return prisma.product.update({
+  const updatedProduct = await prisma.product.update({
     where: {
       id,
     },
@@ -229,6 +244,17 @@ export async function updateProduct(
       batches: true,
     },
   });
+
+  await createAuditLog({
+    action: AuditAction.UPDATE,
+    entity: "Product",
+    entityId: updatedProduct.id,
+    description: `Product "${updatedProduct.name}" was updated`,
+    beforeData: existingProduct,
+    afterData: updatedProduct,
+  });
+
+  return updatedProduct;
 }
 
 export async function deleteProduct(id: string) {
@@ -260,6 +286,14 @@ export async function deleteProduct(id: string) {
     where: {
       id,
     },
+  });
+
+  await createAuditLog({
+    action: AuditAction.DELETE,
+    entity: "Product",
+    entityId: existingProduct.id,
+    description: `Product "${existingProduct.name}" was deleted`,
+    beforeData: existingProduct,
   });
 
   return true;

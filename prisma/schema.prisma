@@ -15,6 +15,58 @@ model User {
   role      UserRole @default(PHARMACIST)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  auditLogs AuditLog[]
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+
+  userId      String?
+  action      AuditAction
+
+  entity      String
+  entityId    String?
+
+  description String?
+
+  beforeData  Json?
+  afterData   Json?
+
+  ipAddress   String?
+  userAgent   String?
+
+  createdAt   DateTime    @default(now())
+
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([entityId])
+  @@index([createdAt])
+}
+enum AuditAction {
+  LOGIN
+  LOGOUT
+
+  CREATE
+  UPDATE
+  DELETE
+
+  STOCK_ADJUSTMENT
+
+  SALE_CREATED
+  SALE_RETURNED
+  SALE_REFUNDED
+
+  PURCHASE_CREATED
+  PURCHASE_RETURNED
+
+  BATCH_CREATED
+  BATCH_UPDATED
+
+  ROLE_CHANGED
 }
 
 model Inventory {

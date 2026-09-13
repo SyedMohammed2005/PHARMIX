@@ -9,6 +9,26 @@
 * 🟢 You can import this file directly.
 */
 
+export const AuditAction = {
+  LOGIN: 'LOGIN',
+  LOGOUT: 'LOGOUT',
+  CREATE: 'CREATE',
+  UPDATE: 'UPDATE',
+  DELETE: 'DELETE',
+  STOCK_ADJUSTMENT: 'STOCK_ADJUSTMENT',
+  SALE_CREATED: 'SALE_CREATED',
+  SALE_RETURNED: 'SALE_RETURNED',
+  SALE_REFUNDED: 'SALE_REFUNDED',
+  PURCHASE_CREATED: 'PURCHASE_CREATED',
+  PURCHASE_RETURNED: 'PURCHASE_RETURNED',
+  BATCH_CREATED: 'BATCH_CREATED',
+  BATCH_UPDATED: 'BATCH_UPDATED',
+  ROLE_CHANGED: 'ROLE_CHANGED'
+} as const
+
+export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction]
+
+
 export const UserRole = {
   ADMIN: 'ADMIN',
   PHARMACIST: 'PHARMACIST',

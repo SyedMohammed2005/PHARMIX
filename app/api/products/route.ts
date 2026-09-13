@@ -142,8 +142,8 @@ export async function POST(request: Request) {
 
     const product = await createProduct(
       validation.data,
+      currentUser.userId,
     );
-
     return NextResponse.json(
       {
         success: true,

@@ -106,10 +106,11 @@ export async function PUT(
       );
     }
 
-    const product = await updateProduct(
-      id,
-      validation.data,
-    );
+   const product = await updateProduct(
+  id,
+  validation.data,
+  currentUser.userId,
+);
 
     if (!product) {
       return NextResponse.json(
@@ -215,8 +216,10 @@ export async function DELETE(
     }
 
     const { id } = await context.params;
-
-    const deleted = await deleteProduct(id);
+const deleted = await deleteProduct(
+  id,
+  currentUser.userId,
+);
 
     if (!deleted) {
       return NextResponse.json(

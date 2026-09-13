@@ -1,9 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit.service";
-import {
-  AuditAction,
-  Prisma,
-} from "../src/generated/prisma/client";
+import { AuditAction } from "../src/generated/prisma/client";
 
 export async function getProducts(params: {
   search?: string;
@@ -121,20 +118,23 @@ export async function getProductById(id: string) {
   });
 }
 
-export async function createProduct(data: {
-  name: string;
-  genericName?: string;
-  brand?: string;
-  sku: string;
-  barcode?: string;
-  purchasePrice: number;
-  sellingPrice: number;
-  mrp: number;
-  gst: number;
-  requiresPrescription: boolean;
-  categoryId: string;
-  supplierId: string;
-}) {
+export async function createProduct(
+  data: {
+    name: string;
+    genericName?: string;
+    brand?: string;
+    sku: string;
+    barcode?: string;
+    purchasePrice: number;
+    sellingPrice: number;
+    mrp: number;
+    gst: number;
+    requiresPrescription: boolean;
+    categoryId: string;
+    supplierId: string;
+  },
+  userId: string,
+) {
   const existingProduct = await prisma.product.findFirst({
     where: {
       OR: [
@@ -186,6 +186,7 @@ export async function createProduct(data: {
   });
 
   await createAuditLog({
+    userId,
     action: AuditAction.CREATE,
     entity: "Product",
     entityId: product.id,
@@ -199,6 +200,7 @@ export async function createProduct(data: {
 export async function updateProduct(
   id: string,
   data: Record<string, unknown>,
+  userId: string,
 ) {
   const existingProduct = await prisma.product.findUnique({
     where: {
@@ -246,6 +248,7 @@ export async function updateProduct(
   });
 
   await createAuditLog({
+    userId,
     action: AuditAction.UPDATE,
     entity: "Product",
     entityId: updatedProduct.id,
@@ -257,7 +260,10 @@ export async function updateProduct(
   return updatedProduct;
 }
 
-export async function deleteProduct(id: string) {
+export async function deleteProduct(
+  id: string,
+  userId: string,
+) {
   const existingProduct = await prisma.product.findUnique({
     where: {
       id,
@@ -289,6 +295,7 @@ export async function deleteProduct(id: string) {
   });
 
   await createAuditLog({
+    userId,
     action: AuditAction.DELETE,
     entity: "Product",
     entityId: existingProduct.id,

@@ -6,10 +6,12 @@ import {
   hasRole,
 } from "@/lib/authorization";
 import {
+  AuditAction,
   PaymentStatus,
   StockTransactionType,
   UserRole,
 } from "@/src/generated/prisma/client";
+import { createAuditLog } from "@/services/audit.service";
 
 const createReturnSchema = z.object({
   saleId: z.string().min(1, "Sale ID is required"),
@@ -396,6 +398,9 @@ export async function POST(request: Request) {
           });
         }
 
+        // Updated payment
+        let updatedPayment = null;
+
         // Update payment ONCE
         if (sale.payment) {
           const newRefundedAmount =
@@ -411,25 +416,29 @@ export async function POST(request: Request) {
             );
           }
 
-          await tx.payment.update({
-            where: {
-              id: sale.payment.id,
-            },
+          updatedPayment =
+            await tx.payment.update({
+              where: {
+                id: sale.payment.id,
+              },
 
-            data: {
-              refundedAmount:
-                newRefundedAmount,
+              data: {
+                refundedAmount:
+                  newRefundedAmount,
 
-              status:
-                newRefundedAmount ===
-                sale.payment.amount
-                  ? PaymentStatus.REFUNDED
-                  : PaymentStatus.COMPLETED,
-            },
-          });
+                status:
+                  newRefundedAmount ===
+                  sale.payment.amount
+                    ? PaymentStatus.REFUNDED
+                    : PaymentStatus.COMPLETED,
+              },
+            });
         }
 
-        return saleReturn;
+        return {
+          saleReturn,
+          payment: updatedPayment,
+        };
       },
 
       {
@@ -438,13 +447,40 @@ export async function POST(request: Request) {
       }
     );
 
-    // 11. Return success response
+    // 11. Create SALE_RETURNED audit
+    await createAuditLog({
+      userId: currentUser.userId,
+      action: AuditAction.SALE_RETURNED,
+      entity: "SaleReturn",
+      entityId: result.saleReturn.id,
+      description: `Sale return "${result.saleReturn.returnNumber}" was processed for sale "${sale.invoiceNumber}"`,
+      afterData: {
+        saleReturn: result.saleReturn,
+        returnItems,
+      },
+    });
+
+    // 12. Create SALE_REFUNDED audit
+    if (result.payment) {
+      await createAuditLog({
+        userId: currentUser.userId,
+        action: AuditAction.SALE_REFUNDED,
+        entity: "Payment",
+        entityId: result.payment.id,
+        description: `Refund of ${totalRefund} was processed for sale "${sale.invoiceNumber}"`,
+        beforeData: sale.payment,
+        afterData: result.payment,
+      });
+    }
+
+    // 13. Return success response
     return NextResponse.json(
       {
         success: true,
         message:
           "Sale return processed successfully",
-        return: result,
+        return: result.saleReturn,
+        payment: result.payment,
       },
       { status: 201 }
     );

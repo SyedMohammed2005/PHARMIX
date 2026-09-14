@@ -72,52 +72,53 @@ export async function GET(request: Request) {
 
     // 3. Read query parameters
     const { searchParams } = new URL(request.url);
-const customerId =
-  searchParams.get("customerId") || undefined;
 
-const search =
-  searchParams.get("search") || undefined;
+    const customerId =
+      searchParams.get("customerId") || undefined;
 
-const paymentMethodParam =
-  searchParams.get("paymentMethod");
+    const search =
+      searchParams.get("search") || undefined;
 
-const paymentMethod =
-  paymentMethodParam &&
-  Object.values(PaymentMethod).includes(
-    paymentMethodParam as PaymentMethod
-  )
-    ? (paymentMethodParam as PaymentMethod)
-    : undefined;
+    const paymentMethodParam =
+      searchParams.get("paymentMethod");
 
-const startDateParam =
-  searchParams.get("startDate");
+    const paymentMethod =
+      paymentMethodParam &&
+      Object.values(PaymentMethod).includes(
+        paymentMethodParam as PaymentMethod
+      )
+        ? (paymentMethodParam as PaymentMethod)
+        : undefined;
 
-const endDateParam =
-  searchParams.get("endDate");
+    const startDateParam =
+      searchParams.get("startDate");
 
-const startDate =
-  startDateParam &&
-  !Number.isNaN(
-    new Date(startDateParam).getTime()
-  )
-    ? new Date(startDateParam)
-    : undefined;
+    const endDateParam =
+      searchParams.get("endDate");
 
-let endDate: Date | undefined;
+    const startDate =
+      startDateParam &&
+      !Number.isNaN(
+        new Date(startDateParam).getTime()
+      )
+        ? new Date(startDateParam)
+        : undefined;
 
-if (
-  endDateParam &&
-  !Number.isNaN(
-    new Date(endDateParam).getTime()
-  )
-) {
-  endDate = new Date(endDateParam);
+    let endDate: Date | undefined;
 
-  // Include the complete selected day
-  endDate.setHours(23, 59, 59, 999);
-}
+    if (
+      endDateParam &&
+      !Number.isNaN(
+        new Date(endDateParam).getTime()
+      )
+    ) {
+      endDate = new Date(endDateParam);
 
-  const page = Math.max(
+      // Include the complete selected day
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    const page = Math.max(
       Number(searchParams.get("page")) || 1,
       1
     );
@@ -132,14 +133,14 @@ if (
 
     // 4. Get sales from service
     const result = await getSales({
-  customerId,
-  search,
-  paymentMethod,
-  startDate,
-  endDate,
-  page,
-  limit,
-});
+      customerId,
+      search,
+      paymentMethod,
+      startDate,
+      endDate,
+      page,
+      limit,
+    });
 
     // 5. Return response
     return NextResponse.json({
@@ -226,11 +227,13 @@ export async function POST(request: Request) {
     const data = validation.data;
 
     // 5. Create sale through service
+    // Pass authenticated user's ID for audit logging
     const result = await createSale({
       customerId: data.customerId,
       items: data.items,
       discount: data.discount,
       paymentMethod: data.paymentMethod,
+      userId: currentUser.userId,
     });
 
     // 6. Return response
@@ -276,9 +279,7 @@ export async function POST(request: Request) {
         "Batch does not belong to product"
       ) ||
       message.startsWith("Batch") ||
-      message.startsWith(
-        "Insufficient batch stock"
-      ) ||
+      message.startsWith("Insufficient batch stock") ||
       message.startsWith(
         "Discount cannot be greater"
       )

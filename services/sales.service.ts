@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/services/audit.service";
 import {
+  AuditAction,
   PaymentMethod,
   PaymentStatus,
   Prisma,
@@ -129,6 +131,8 @@ type ValidatedSaleItem = {
 };
 
 type CreateSaleParams = {
+  userId: string;
+
   customerId?: string;
 
   items: {
@@ -142,6 +146,7 @@ type CreateSaleParams = {
 };
 
 export async function createSale({
+  userId,
   customerId,
   items,
   discount,
@@ -255,7 +260,7 @@ export async function createSale({
   const invoiceNumber = `INV-${Date.now()}`;
 
   // 9. Atomic transaction
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const sale = await tx.sale.create({
       data: {
         invoiceNumber,
@@ -332,4 +337,16 @@ export async function createSale({
       payment,
     };
   });
+
+  // 12. Create audit log after successful transaction
+  await createAuditLog({
+    userId,
+    action: AuditAction.SALE_CREATED,
+    entity: "Sale",
+    entityId: result.sale.id,
+    description: `Sale "${result.sale.invoiceNumber}" was created`,
+    afterData: result,
+  });
+
+  return result;
 }

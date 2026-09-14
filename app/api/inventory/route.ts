@@ -103,7 +103,8 @@ export async function POST(request: Request) {
     // 5. Create inventory through service
     try {
       const inventory = await createInventory(
-        validation.data
+        validation.data,
+        currentUser.userId
       );
 
       return NextResponse.json(

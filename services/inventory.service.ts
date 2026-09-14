@@ -1,8 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import { createInventorySchema } from "@/lib/validations/inventory";
+import { createAuditLog } from "@/services/audit.service";
+import { AuditAction } from "../src/generated/prisma/client";
 import { z } from "zod";
 
-type CreateInventoryInput = z.infer<typeof createInventorySchema>;
+type CreateInventoryInput = z.infer<
+  typeof createInventorySchema
+>;
+
+type UpdateInventoryInput = {
+  quantity?: number;
+  minimumStock?: number;
+  maximumStock?: number;
+  reorderPoint?: number;
+};
 
 const inventoryInclude = {
   product: {
@@ -23,7 +34,8 @@ export async function getInventory() {
 }
 
 export async function createInventory(
-  data: CreateInventoryInput
+  data: CreateInventoryInput,
+  userId: string
 ) {
   // Check product exists
   const product = await prisma.product.findUnique({
@@ -61,7 +73,7 @@ export async function createInventory(
   }
 
   // Create inventory
-  return prisma.inventory.create({
+  const inventory = await prisma.inventory.create({
     data: {
       productId: data.productId,
       quantity: data.quantity,
@@ -71,4 +83,125 @@ export async function createInventory(
     },
     include: inventoryInclude,
   });
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: AuditAction.CREATE,
+    entity: "Inventory",
+    entityId: inventory.id,
+    description: `Inventory was created for product "${product.name}"`,
+    afterData: inventory,
+  });
+
+  return inventory;
+}
+
+export async function updateInventory(
+  id: string,
+  data: UpdateInventoryInput,
+  userId: string
+) {
+  // Find existing inventory
+  const existingInventory =
+    await prisma.inventory.findUnique({
+      where: {
+        id,
+      },
+      include: inventoryInclude,
+    });
+
+  if (!existingInventory) {
+    return null;
+  }
+
+  // Calculate final values
+  const minimumStock =
+    data.minimumStock ?? existingInventory.minimumStock;
+
+  const maximumStock =
+    data.maximumStock ?? existingInventory.maximumStock;
+
+  const quantity =
+    data.quantity ?? existingInventory.quantity;
+
+  const reorderPoint =
+    data.reorderPoint ?? existingInventory.reorderPoint;
+
+  // Validate minimum and maximum stock
+  if (
+    maximumStock !== null &&
+    maximumStock < minimumStock
+  ) {
+    throw new Error(
+      "Maximum stock cannot be less than minimum stock"
+    );
+  }
+
+  // Validate quantity
+  if (
+    maximumStock !== null &&
+    quantity > maximumStock
+  ) {
+    throw new Error(
+      "Quantity cannot exceed maximum stock"
+    );
+  }
+
+  // Validate reorder point
+  if (
+    reorderPoint !== null &&
+    reorderPoint < minimumStock
+  ) {
+    throw new Error(
+      "Reorder point cannot be less than minimum stock"
+    );
+  }
+
+  if (
+    reorderPoint !== null &&
+    maximumStock !== null &&
+    reorderPoint > maximumStock
+  ) {
+    throw new Error(
+      "Reorder point cannot be greater than maximum stock"
+    );
+  }
+
+  // Update inventory
+  const updatedInventory =
+    await prisma.inventory.update({
+      where: {
+        id,
+      },
+      data,
+      include: inventoryInclude,
+    });
+
+  // Determine whether this is a stock adjustment
+  const quantityChanged =
+    data.quantity !== undefined &&
+    data.quantity !== existingInventory.quantity;
+
+  const auditAction = quantityChanged
+    ? AuditAction.STOCK_ADJUSTMENT
+    : AuditAction.UPDATE;
+
+  // Build audit description
+  let description = quantityChanged
+    ? `Inventory quantity for product "${existingInventory.product.name}" was adjusted from ${existingInventory.quantity} to ${updatedInventory.quantity}`
+    : `Inventory settings for product "${existingInventory.product.name}" were updated`;
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: auditAction,
+    entity: "Inventory",
+    entityId: updatedInventory.id,
+    description,
+    beforeData: existingInventory,
+    afterData: updatedInventory,
+  });
+
+  return updatedInventory;
 }

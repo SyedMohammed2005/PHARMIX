@@ -142,12 +142,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const purchase = await createPurchase({
-      supplierId: data.supplierId,
-      items: data.items,
-      discount: data.discount,
-      paymentMethod: data.paymentMethod,
-    });
+ const purchase = await createPurchase({
+  supplierId: data.supplierId,
+  items: data.items,
+  discount: data.discount,
+  paymentMethod: data.paymentMethod,
+  userId: currentUser.userId,
+});
 
     return NextResponse.json(
       {

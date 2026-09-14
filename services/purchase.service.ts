@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import {
+  AuditAction,
   PaymentMethod,
   PaymentStatus,
 } from "@/src/generated/prisma/client";
+
+import { createAuditLog } from "@/services/audit.service";
 
 type PurchaseItemInput = {
   productId: string;
@@ -17,6 +20,7 @@ type CreatePurchaseInput = {
   items: PurchaseItemInput[];
   discount: number;
   paymentMethod: PaymentMethod;
+  userId: string;
 };
 
 export async function findSupplierById(
@@ -148,9 +152,10 @@ export async function createPurchase(
     items,
     discount,
     paymentMethod,
+    userId,
   } = data;
 
-  // 1. Validate supplier before transaction
+  // 1. Validate supplier
 
   const supplier =
     await findSupplierById(supplierId);
@@ -192,16 +197,15 @@ export async function createPurchase(
   }
 
   // 4. Validate products and batches
-  // BEFORE transaction
 
   await validatePurchaseItems(items);
 
-  // 5. Fetch inventories BEFORE transaction
+  // 5. Validate inventories
 
   const inventories =
     await validatePurchaseInventories(items);
 
-  // 6. Calculate totals
+  // 6. Calculate purchase totals
 
   const {
     purchaseItemsData,
@@ -218,126 +222,152 @@ export async function createPurchase(
   const purchaseNumber =
     `PUR-${Date.now()}`;
 
-  // 8. Start optimized transaction
+  // 8. Create purchase and update stock
+  // inside one database transaction
 
-  return prisma.$transaction(
-    async (tx) => {
-      // Create purchase + items + payment
+  const createdPurchase =
+    await prisma.$transaction(
+      async (tx) => {
+        // Create purchase + items + payment
 
-      const createdPurchase =
-        await tx.purchase.create({
-          data: {
-            purchaseNumber,
-            supplierId,
-            subtotal,
-            discount,
-            tax,
-            totalAmount,
+        const createdPurchase =
+          await tx.purchase.create({
+            data: {
+              purchaseNumber,
+              supplierId,
+              subtotal,
+              discount,
+              tax,
+              totalAmount,
 
-            items: {
-              create: purchaseItemsData,
-            },
-
-            payment: {
-              create: {
-                amount: totalAmount,
-                method: paymentMethod,
-                status:
-                  PaymentStatus.COMPLETED,
+              items: {
+                create: purchaseItemsData,
               },
-            },
-          },
 
-          include: {
-            supplier: true,
-
-            items: {
-              include: {
-                product: true,
-                batch: true,
+              payment: {
+                create: {
+                  amount: totalAmount,
+                  method: paymentMethod,
+                  status:
+                    PaymentStatus.COMPLETED,
+                },
               },
             },
 
-            payment: true,
-          },
-        });
+            include: {
+              supplier: true,
 
-      // Update stock for every item
+              items: {
+                include: {
+                  product: true,
+                  batch: true,
+                },
+              },
 
-      for (const item of items) {
-        // Find already validated inventory
-        // No database query here
+              payment: true,
+            },
+          });
 
-        const inventoryData =
-          inventories.find(
-            (inventoryItem) =>
-              inventoryItem.productId ===
-              item.productId,
-          );
+        // Update stock for every purchase item
 
-        if (!inventoryData) {
-          throw new Error(
-            `Inventory data not found for product: ${item.productId}`,
-          );
+        for (const item of items) {
+          // Use already validated inventory
+
+          const inventoryData =
+            inventories.find(
+              (inventoryItem) =>
+                inventoryItem.productId ===
+                item.productId,
+            );
+
+          if (!inventoryData) {
+            throw new Error(
+              `Inventory data not found for product: ${item.productId}`,
+            );
+          }
+
+          const inventory =
+            inventoryData.inventory;
+
+          // Increase batch quantity
+
+          await tx.batch.update({
+            where: {
+              id: item.batchId,
+            },
+
+            data: {
+              quantity: {
+                increment: item.quantity,
+              },
+
+              purchasePrice:
+                item.unitPrice,
+            },
+          });
+
+          // Increase inventory quantity
+
+          await tx.inventory.update({
+            where: {
+              id: inventory.id,
+            },
+
+            data: {
+              quantity: {
+                increment: item.quantity,
+              },
+            },
+          });
+
+          // Create stock transaction
+
+          await tx.stockTransaction.create({
+            data: {
+              inventoryId: inventory.id,
+
+              type: "PURCHASE",
+
+              quantity: item.quantity,
+
+              reason:
+                `Purchase ${purchaseNumber}`,
+            },
+          });
         }
 
-        const inventory =
-          inventoryData.inventory;
+        return createdPurchase;
+      },
+      {
+        maxWait: 5000,
+        timeout: 30000,
+      },
+    );
 
-        // Update batch quantity
+  // 9. Create audit log AFTER
+  // successful purchase transaction
 
-        await tx.batch.update({
-          where: {
-            id: item.batchId,
-          },
+  await createAuditLog({
+    userId,
 
-          data: {
-            quantity: {
-              increment: item.quantity,
-            },
+    action:
+      AuditAction.PURCHASE_CREATED,
 
-            purchasePrice:
-              item.unitPrice,
-          },
-        });
+    entity: "Purchase",
 
-        // Update inventory quantity
+    entityId:
+      createdPurchase.id,
 
-        await tx.inventory.update({
-          where: {
-            id: inventory.id,
-          },
+    description:
+      `Purchase "${createdPurchase.purchaseNumber}" was created`,
 
-          data: {
-            quantity: {
-              increment: item.quantity,
-            },
-          },
-        });
+    afterData:
+      createdPurchase,
+  });
 
-        // Create stock transaction
+  // 10. Return created purchase
 
-        await tx.stockTransaction.create({
-          data: {
-            inventoryId: inventory.id,
-
-            type: "PURCHASE",
-
-            quantity: item.quantity,
-
-            reason:
-              `Purchase ${purchaseNumber}`,
-          },
-        });
-      }
-
-      return createdPurchase;
-    },
-    {
-      maxWait: 5000,
-      timeout: 30000,
-    },
-  );
+  return createdPurchase;
 }
 
 type PurchaseFilters = {
@@ -381,7 +411,8 @@ export async function getPurchases(
       ? sortBy
       : "createdAt";
 
-  const skip = (page - 1) * limit;
+  const skip =
+    (page - 1) * limit;
 
   const where = {
     ...(search
@@ -390,14 +421,17 @@ export async function getPurchases(
             {
               purchaseNumber: {
                 contains: search,
-                mode: "insensitive" as const,
+                mode:
+                  "insensitive" as const,
               },
             },
+
             {
               supplier: {
                 name: {
                   contains: search,
-                  mode: "insensitive" as const,
+                  mode:
+                    "insensitive" as const,
                 },
               },
             },

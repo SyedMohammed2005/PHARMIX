@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { deleteBatch } from "@/services/batch.service";
+import {
+  deleteBatch,
+  updateBatch,
+} from "@/services/batch.service";
 import { getCurrentUser, hasRole } from "@/lib/authorization";
 import { UserRole } from "@/src/generated/prisma/client";
 
@@ -223,20 +226,12 @@ export async function PUT(
     }
 
     // Update batch
-    const batch = await prisma.batch.update({
-      where: {
-        id,
-      },
-      data,
-      include: {
-        product: {
-          include: {
-            category: true,
-            supplier: true,
-          },
-        },
-      },
-    });
+   // Update batch through service
+const batch = await updateBatch(
+  id,
+  data,
+  currentUser.userId,
+);
 
     return NextResponse.json({
       success: true,
@@ -330,7 +325,10 @@ export async function DELETE(
     }
 
     // 6. Delete batch
-    await deleteBatch(id);
+   await deleteBatch(
+  id,
+  currentUser.userId,
+);
 
     // 7. Success response
     return NextResponse.json({
@@ -352,3 +350,4 @@ export async function DELETE(
     );
   }
 }
+

@@ -164,8 +164,10 @@ export async function POST(request: Request) {
 
     // Business/database logic handled by service
     try {
-      const batch = await createBatch(data);
-
+    const batch = await createBatch(
+  data,
+  currentUser.userId,
+);
       return NextResponse.json(
         {
           success: true,

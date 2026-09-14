@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/services/audit.service";
+import { AuditAction } from "../src/generated/prisma/client";
 
 export async function getBatches() {
   return prisma.batch.findMany({
@@ -22,15 +24,18 @@ export async function getBatchById(id: string) {
   });
 }
 
-export async function createBatch(data: {
-  batchNumber: string;
-  productId: string;
-  manufactureDate: Date;
-  expiryDate: Date;
-  quantity: number;
-  purchasePrice: number;
-  sellingPrice: number;
-}) {
+export async function createBatch(
+  data: {
+    batchNumber: string;
+    productId: string;
+    manufactureDate: Date;
+    expiryDate: Date;
+    quantity: number;
+    purchasePrice: number;
+    sellingPrice: number;
+  },
+  userId: string,
+) {
   const product = await prisma.product.findUnique({
     where: {
       id: data.productId,
@@ -57,12 +62,23 @@ export async function createBatch(data: {
     throw error;
   }
 
-  return prisma.batch.create({
+  const batch = await prisma.batch.create({
     data,
     include: {
       product: true,
     },
   });
+
+  await createAuditLog({
+    userId,
+    action: AuditAction.BATCH_CREATED,
+    entity: "Batch",
+    entityId: batch.id,
+    description: `Batch "${batch.batchNumber}" was created for product "${batch.product.name}"`,
+    afterData: batch,
+  });
+
+  return batch;
 }
 
 export async function updateBatch(
@@ -75,8 +91,45 @@ export async function updateBatch(
     purchasePrice?: number;
     sellingPrice?: number;
   },
+  userId: string,
 ) {
-  return prisma.batch.update({
+  const existingBatch = await prisma.batch.findUnique({
+    where: {
+      id,
+    },
+    include: {
+      product: true,
+    },
+  });
+
+  if (!existingBatch) {
+    return null;
+  }
+
+  if (
+    data.batchNumber &&
+    data.batchNumber !== existingBatch.batchNumber
+  ) {
+    const duplicateBatch =
+      await prisma.batch.findUnique({
+        where: {
+          batchNumber: data.batchNumber,
+        },
+      });
+
+    if (
+      duplicateBatch &&
+      duplicateBatch.id !== id
+    ) {
+      const error = new Error(
+        "Batch with this batch number already exists",
+      );
+      error.name = "DUPLICATE_BATCH";
+      throw error;
+    }
+  }
+
+  const updatedBatch = await prisma.batch.update({
     where: {
       id,
     },
@@ -85,21 +138,62 @@ export async function updateBatch(
       product: true,
     },
   });
+
+  await createAuditLog({
+    userId,
+    action: AuditAction.BATCH_UPDATED,
+    entity: "Batch",
+    entityId: updatedBatch.id,
+    description: `Batch "${updatedBatch.batchNumber}" was updated for product "${updatedBatch.product.name}"`,
+    beforeData: existingBatch,
+    afterData: updatedBatch,
+  });
+
+  return updatedBatch;
 }
 
-export async function deleteBatch(id: string) {
-  return prisma.batch.delete({
+export async function deleteBatch(
+  id: string,
+  userId: string,
+) {
+  const existingBatch = await prisma.batch.findUnique({
+    where: {
+      id,
+    },
+    include: {
+      product: true,
+    },
+  });
+
+  if (!existingBatch) {
+    return null;
+  }
+
+  await prisma.batch.delete({
     where: {
       id,
     },
   });
+
+  await createAuditLog({
+    userId,
+    action: AuditAction.DELETE,
+    entity: "Batch",
+    entityId: existingBatch.id,
+    description: `Batch "${existingBatch.batchNumber}" was deleted from product "${existingBatch.product.name}"`,
+    beforeData: existingBatch,
+  });
+
+  return true;
 }
 
 export async function getExpiringBatches(days = 30) {
   const today = new Date();
-
   const futureDate = new Date(today);
-  futureDate.setDate(futureDate.getDate() + days);
+
+  futureDate.setDate(
+    futureDate.getDate() + days,
+  );
 
   return prisma.batch.findMany({
     where: {

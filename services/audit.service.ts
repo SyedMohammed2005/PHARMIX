@@ -248,6 +248,52 @@ export async function getAuditStats() {
       actionCounts[AuditAction.ROLE_CHANGED] ?? 0,
   };
 }
+
+export async function getAuditActivityByUser() {
+  const userGroups = await prisma.auditLog.groupBy({
+    by: ["userId"],
+    _count: {
+      userId: true,
+    },
+    orderBy: {
+      _count: {
+        userId: "desc",
+      },
+    },
+  });
+
+  const userIds = userGroups
+    .map((group) => group.userId)
+    .filter((userId): userId is string => Boolean(userId));
+
+  const users = await prisma.user.findMany({
+    where: {
+      id: {
+        in: userIds,
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+    },
+  });
+
+  const userMap = new Map(
+    users.map((user) => [user.id, user]),
+  );
+
+ return userGroups
+  .filter(
+    (group): group is typeof group & { userId: string } =>
+      Boolean(group.userId),
+  )
+  .map((group) => ({
+    user: userMap.get(group.userId) ?? null,
+    actionCount: group._count.userId,
+  }));
+}
 export async function getRecentAuditLogs(
   limit = 10,
 ) {

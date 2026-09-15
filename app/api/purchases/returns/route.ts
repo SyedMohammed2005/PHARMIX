@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hasRole } from "@/lib/authorization";
+import { createAuditLog } from "@/services/audit.service";
 import {
+  AuditAction,
   StockTransactionType,
   UserRole,
 } from "@/src/generated/prisma/client";
@@ -54,7 +56,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "You are not authorized to process purchase returns",
+          message:
+            "You are not authorized to process purchase returns",
         },
         { status: 403 },
       );
@@ -64,14 +67,16 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     // 4. Validate request body
-    const validation = createPurchaseReturnSchema.safeParse(body);
+    const validation =
+      createPurchaseReturnSchema.safeParse(body);
 
     if (!validation.success) {
       return NextResponse.json(
         {
           success: false,
           message: "Validation failed",
-          errors: validation.error.flatten().fieldErrors,
+          errors:
+            validation.error.flatten().fieldErrors,
         },
         { status: 400 },
       );
@@ -80,15 +85,16 @@ export async function POST(request: Request) {
     const data = validation.data;
 
     // 5. Find original purchase
-    const purchase = await prisma.purchase.findUnique({
-      where: {
-        id: data.purchaseId,
-      },
-      include: {
-        items: true,
-        payment: true,
-      },
-    });
+    const purchase =
+      await prisma.purchase.findUnique({
+        where: {
+          id: data.purchaseId,
+        },
+        include: {
+          items: true,
+          payment: true,
+        },
+      });
 
     if (!purchase) {
       return NextResponse.json(
@@ -105,7 +111,9 @@ export async function POST(request: Request) {
       (item) => item.purchaseItemId,
     );
 
-    if (new Set(itemIds).size !== itemIds.length) {
+    if (
+      new Set(itemIds).size !== itemIds.length
+    ) {
       return NextResponse.json(
         {
           success: false,
@@ -123,10 +131,11 @@ export async function POST(request: Request) {
     }[] = [];
 
     for (const item of data.items) {
-      const purchaseItem = purchase.items.find(
-        (existingItem) =>
-          existingItem.id === item.purchaseItemId,
-      );
+      const purchaseItem =
+        purchase.items.find(
+          (existingItem) =>
+            existingItem.id === item.purchaseItemId,
+        );
 
       if (!purchaseItem) {
         return NextResponse.json(
@@ -142,7 +151,8 @@ export async function POST(request: Request) {
       const previousReturns =
         await prisma.purchaseReturnItem.aggregate({
           where: {
-            purchaseItemId: purchaseItem.id,
+            purchaseItemId:
+              purchaseItem.id,
             return: {
               status: "COMPLETED",
             },
@@ -156,9 +166,13 @@ export async function POST(request: Request) {
         previousReturns._sum.quantity ?? 0;
 
       const remainingQuantity =
-        purchaseItem.quantity - alreadyReturned;
+        purchaseItem.quantity -
+        alreadyReturned;
 
-      if (item.quantity > remainingQuantity) {
+      if (
+        item.quantity >
+        remainingQuantity
+      ) {
         return NextResponse.json(
           {
             success: false,
@@ -169,7 +183,8 @@ export async function POST(request: Request) {
       }
 
       const refundAmount =
-        purchaseItem.unitPrice * item.quantity;
+        purchaseItem.unitPrice *
+        item.quantity;
 
       returnItems.push({
         purchaseItem,
@@ -179,105 +194,184 @@ export async function POST(request: Request) {
     }
 
     // 8. Calculate total refund
-    const totalRefund = returnItems.reduce(
-      (total, item) => total + item.refundAmount,
-      0,
-    );
+    const totalRefund =
+      returnItems.reduce(
+        (total, item) =>
+          total + item.refundAmount,
+        0,
+      );
 
     // 9. Generate purchase return number
     const returnNumber = `PRET-${Date.now()}`;
 
     // 10. Atomic transaction
-    const result = await prisma.$transaction(async (tx) => {
-      const purchaseReturn =
-        await tx.purchaseReturn.create({
-          data: {
-            returnNumber,
-            purchaseId: purchase.id,
-            totalRefund,
-            reason: data.reason,
-            status: "COMPLETED",
-          },
-        });
+    const result =
+      await prisma.$transaction(
+        async (tx) => {
+          const purchaseReturn =
+            await tx.purchaseReturn.create({
+              data: {
+                returnNumber,
+                purchaseId:
+                  purchase.id,
+                totalRefund,
+                reason: data.reason,
+                status: "COMPLETED",
+              },
+            });
 
-      for (const item of returnItems) {
-        // Create purchase return item
-        await tx.purchaseReturnItem.create({
-          data: {
-            returnId: purchaseReturn.id,
-            purchaseItemId: item.purchaseItem.id,
-            quantity: item.quantity,
-            refundAmount: item.refundAmount,
-          },
-        });
+          for (const item of returnItems) {
+            // Create purchase return item
+            await tx.purchaseReturnItem.create({
+              data: {
+                returnId:
+                  purchaseReturn.id,
+                purchaseItemId:
+                  item.purchaseItem.id,
+                quantity:
+                  item.quantity,
+                refundAmount:
+                  item.refundAmount,
+              },
+            });
 
-        // Decrease batch quantity
-        await tx.batch.update({
-          where: {
-            id: item.purchaseItem.batchId,
-          },
-          data: {
-            quantity: {
-              decrement: item.quantity,
-            },
-          },
-        });
+            // Decrease batch quantity
+            await tx.batch.update({
+              where: {
+                id: item.purchaseItem.batchId,
+              },
+              data: {
+                quantity: {
+                  decrement:
+                    item.quantity,
+                },
+              },
+            });
 
-        // Find inventory through product
-        const product = await tx.product.findUnique({
-          where: {
-            id: item.purchaseItem.productId,
-          },
-          include: {
-            inventory: true,
-          },
-        });
+            // Find inventory through product
+            const product =
+              await tx.product.findUnique({
+                where: {
+                  id: item.purchaseItem
+                    .productId,
+                },
+                include: {
+                  inventory: true,
+                },
+              });
 
-        if (!product?.inventory) {
-          throw new Error(
-            `Inventory not found for product ${item.purchaseItem.productId}`,
-          );
-        }
+            if (!product?.inventory) {
+              throw new Error(
+                `Inventory not found for product ${item.purchaseItem.productId}`,
+              );
+            }
 
-        // Prevent negative inventory
-        if (
-          product.inventory.quantity < item.quantity
-        ) {
-          throw new Error(
-            `Insufficient inventory for product ${item.purchaseItem.productId}`,
-          );
-        }
+            // Prevent negative inventory
+            if (
+              product.inventory.quantity <
+              item.quantity
+            ) {
+              throw new Error(
+                `Insufficient inventory for product ${item.purchaseItem.productId}`,
+              );
+            }
 
-        // Decrease inventory quantity
-        await tx.inventory.update({
-          where: {
-            id: product.inventory.id,
-          },
-          data: {
-            quantity: {
-              decrement: item.quantity,
-            },
-          },
-        });
+            // Decrease inventory quantity
+            await tx.inventory.update({
+              where: {
+                id: product.inventory.id,
+              },
+              data: {
+                quantity: {
+                  decrement:
+                    item.quantity,
+                },
+              },
+            });
 
-        // Create RETURN stock transaction
-        await tx.stockTransaction.create({
-          data: {
-            inventoryId: product.inventory.id,
-            type: StockTransactionType.RETURN,
-            quantity: item.quantity,
-            reason: `Purchase Return ${returnNumber}`,
-          },
-        });
-      }
+            // Create RETURN stock transaction
+            await tx.stockTransaction.create({
+              data: {
+                inventoryId:
+                  product.inventory.id,
+                type:
+                  StockTransactionType.RETURN,
+                quantity:
+                  item.quantity,
+                reason: `Purchase Return ${returnNumber}`,
+              },
+            });
+          }
 
-      return purchaseReturn;
+          return purchaseReturn;
+        },
+      );
+
+    // 11. Create audit log only after
+    // successful transaction
+    await createAuditLog({
+      userId: currentUser.userId,
+      action: AuditAction.PURCHASE_RETURNED,
+      entity: "PurchaseReturn",
+      entityId: result.id,
+      description:
+        `Purchase return "${result.returnNumber}" was processed for purchase "${purchase.purchaseNumber}"`,
+      beforeData: {
+        purchase: {
+          id: purchase.id,
+          purchaseNumber:
+            purchase.purchaseNumber,
+          supplierId:
+            purchase.supplierId,
+          subtotal:
+            purchase.subtotal,
+          discount:
+            purchase.discount,
+          tax: purchase.tax,
+          totalAmount:
+            purchase.totalAmount,
+        },
+        items: returnItems.map(
+          (item) => ({
+            purchaseItemId:
+              item.purchaseItem.id,
+            productId:
+              item.purchaseItem.productId,
+            batchId:
+              item.purchaseItem.batchId,
+            originalQuantity:
+              item.purchaseItem.quantity,
+            unitPrice:
+              item.purchaseItem.unitPrice,
+          }),
+        ),
+      },
+      afterData: {
+        purchaseReturn: result,
+        returnItems: returnItems.map(
+          (item) => ({
+            purchaseItemId:
+              item.purchaseItem.id,
+            productId:
+              item.purchaseItem.productId,
+            batchId:
+              item.purchaseItem.batchId,
+            returnedQuantity:
+              item.quantity,
+            refundAmount:
+              item.refundAmount,
+          }),
+        ),
+        totalRefund,
+        reason: data.reason ?? null,
+      },
     });
 
     return NextResponse.json(
       {
         success: true,
-        message: "Purchase return processed successfully",
+        message:
+          "Purchase return processed successfully",
         return: result,
       },
       { status: 201 },

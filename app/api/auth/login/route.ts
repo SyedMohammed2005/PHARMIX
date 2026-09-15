@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { comparePassword } from "@/lib/auth";
 import { createToken } from "@/lib/jwt";
+
+import { createAuditLog } from "@/services/audit.service";
+import { AuditAction } from "@/src/generated/prisma/client";
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -52,6 +56,19 @@ export async function POST(request: Request) {
    const token = await createToken({
   userId: user.id,
   role: user.role,
+});
+
+await createAuditLog({
+  userId: user.id,
+  action: AuditAction.LOGIN,
+  entity: "User",
+  entityId: user.id,
+  description: `User "${user.email}" logged in successfully`,
+  afterData: {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  },
 });
 
 const { password: _, ...safeUser } = user;

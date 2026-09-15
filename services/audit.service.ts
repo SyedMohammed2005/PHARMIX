@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import {
   AuditAction,
   Prisma,
+  UserRole,
 } from "../src/generated/prisma/client";
 
 
@@ -19,10 +20,13 @@ type AuditLogInput = {
 
 type AuditLogFilters = {
   userId?: string;
+  role?: UserRole;
   action?: AuditAction;
   entity?: string;
   entityId?: string;
   search?: string;
+  from?: Date;
+  to?: Date;
   page?: number;
   limit?: number;
 };
@@ -66,48 +70,66 @@ export async function createAuditLog(
 export async function getAuditLogs(
   filters: AuditLogFilters = {},
 ) {
-  const {
-    userId,
-    action,
-    entity,
-    entityId,
-    search,
-    page = 1,
-    limit = 20,
-  } = filters;
+ const {
+  userId,
+  role,
+  action,
+  entity,
+  entityId,
+  search,
+  from,
+  to,
+  page = 1,
+  limit = 20,
+} = filters;
 
   const skip = (page - 1) * limit;
 
-  const where: Prisma.AuditLogWhereInput = {
-    ...(userId ? { userId } : {}),
-    ...(action ? { action } : {}),
-    ...(entity ? { entity } : {}),
-    ...(entityId ? { entityId } : {}),
-    ...(search
-      ? {
-          OR: [
-            {
-              entity: {
-                contains: search,
-                mode: "insensitive",
-              },
+ const where: Prisma.AuditLogWhereInput = {
+  ...(userId ? { userId } : {}),
+  ...(action ? { action } : {}),
+  ...(entity ? { entity } : {}),
+  ...(entityId ? { entityId } : {}),
+  ...(role
+    ? {
+        user: {
+          role,
+        },
+      }
+    : {}),
+  ...(from || to
+    ? {
+        createdAt: {
+          ...(from ? { gte: from } : {}),
+          ...(to ? { lte: to } : {}),
+        },
+      }
+    : {}),
+  ...(search
+    ? {
+        OR: [
+          {
+            entity: {
+              contains: search,
+              mode: "insensitive",
             },
-            {
-              description: {
-                contains: search,
-                mode: "insensitive",
-              },
+          },
+          {
+            description: {
+              contains: search,
+              mode: "insensitive",
             },
-            {
-              entityId: {
-                contains: search,
-                mode: "insensitive",
-              },
+          },
+          {
+            entityId: {
+              contains: search,
+              mode: "insensitive",
             },
-          ],
-        }
-      : {}),
-  };
+          },
+        ],
+      }
+    : {}),
+};
 
   const [total, logs] = await Promise.all([
     prisma.auditLog.count({
@@ -164,57 +186,68 @@ export async function getAuditLogById(
 }
 
 export async function getAuditStats() {
-  const [
-    totalLogs,
-    createCount,
-    updateCount,
-    deleteCount,
-    loginCount,
-    stockAdjustmentCount,
-  ] = await Promise.all([
-    prisma.auditLog.count(),
+  const actionGroups = await prisma.auditLog.groupBy({
+    by: ["action"],
+    _count: {
+      action: true,
+    },
+  });
 
-    prisma.auditLog.count({
-      where: {
-        action: AuditAction.CREATE,
-      },
-    }),
+  const actionCounts = Object.fromEntries(
+    actionGroups.map((group) => [
+      group.action,
+      group._count.action,
+    ]),
+  ) as Record<AuditAction, number>;
 
-    prisma.auditLog.count({
-      where: {
-        action: AuditAction.UPDATE,
-      },
-    }),
-
-    prisma.auditLog.count({
-      where: {
-        action: AuditAction.DELETE,
-      },
-    }),
-
-    prisma.auditLog.count({
-      where: {
-        action: AuditAction.LOGIN,
-      },
-    }),
-
-    prisma.auditLog.count({
-      where: {
-        action: AuditAction.STOCK_ADJUSTMENT,
-      },
-    }),
-  ]);
+  const totalLogs = await prisma.auditLog.count();
 
   return {
     totalLogs,
-    createCount,
-    updateCount,
-    deleteCount,
-    loginCount,
-    stockAdjustmentCount,
+
+    createCount:
+      actionCounts[AuditAction.CREATE] ?? 0,
+
+    updateCount:
+      actionCounts[AuditAction.UPDATE] ?? 0,
+
+    deleteCount:
+      actionCounts[AuditAction.DELETE] ?? 0,
+
+    loginCount:
+      actionCounts[AuditAction.LOGIN] ?? 0,
+
+    logoutCount:
+      actionCounts[AuditAction.LOGOUT] ?? 0,
+
+    stockAdjustmentCount:
+      actionCounts[AuditAction.STOCK_ADJUSTMENT] ?? 0,
+
+    saleCreatedCount:
+      actionCounts[AuditAction.SALE_CREATED] ?? 0,
+
+    saleReturnedCount:
+      actionCounts[AuditAction.SALE_RETURNED] ?? 0,
+
+    saleRefundedCount:
+      actionCounts[AuditAction.SALE_REFUNDED] ?? 0,
+
+    purchaseCreatedCount:
+      actionCounts[AuditAction.PURCHASE_CREATED] ?? 0,
+
+    purchaseReturnedCount:
+      actionCounts[AuditAction.PURCHASE_RETURNED] ?? 0,
+
+    batchCreatedCount:
+      actionCounts[AuditAction.BATCH_CREATED] ?? 0,
+
+    batchUpdatedCount:
+      actionCounts[AuditAction.BATCH_UPDATED] ?? 0,
+
+    roleChangedCount:
+      actionCounts[AuditAction.ROLE_CHANGED] ?? 0,
   };
 }
-
 export async function getRecentAuditLogs(
   limit = 10,
 ) {

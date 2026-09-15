@@ -1,7 +1,12 @@
-
 import { NextRequest, NextResponse } from "next/server";
-import { AuditAction, UserRole } from "@/src/generated/prisma/client";
-import { getCurrentUser, hasRole } from "@/lib/authorization";
+import {
+  AuditAction,
+  UserRole,
+} from "@/src/generated/prisma/client";
+import {
+  getCurrentUser,
+  hasRole,
+} from "@/lib/authorization";
 import {
   getAuditLogs,
   getAuditLogById,
@@ -90,6 +95,10 @@ export async function GET(request: NextRequest) {
     const search =
       searchParams.get("search") || undefined;
 
+    // -----------------------------
+    // Action filter
+    // -----------------------------
+
     const actionParam =
       searchParams.get("action");
 
@@ -113,6 +122,99 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // -----------------------------
+    // Role filter
+    // -----------------------------
+
+    const roleParam =
+      searchParams.get("role");
+
+    let role: UserRole | undefined;
+
+    if (roleParam) {
+      if (
+        Object.values(UserRole).includes(
+          roleParam as UserRole,
+        )
+      ) {
+        role = roleParam as UserRole;
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Invalid user role",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    // -----------------------------
+    // Date filters
+    // -----------------------------
+
+    const fromParam =
+      searchParams.get("from");
+
+    const toParam =
+      searchParams.get("to");
+
+    let from: Date | undefined;
+    let to: Date | undefined;
+
+    if (fromParam) {
+      const parsedFrom = new Date(
+        `${fromParam}T00:00:00`,
+      );
+
+      if (Number.isNaN(parsedFrom.getTime())) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Invalid from date. Use YYYY-MM-DD format",
+          },
+          { status: 400 },
+        );
+      }
+
+      from = parsedFrom;
+    }
+
+    if (toParam) {
+      const parsedTo = new Date(
+        `${toParam}T23:59:59.999`,
+      );
+
+      if (Number.isNaN(parsedTo.getTime())) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Invalid to date. Use YYYY-MM-DD format",
+          },
+          { status: 400 },
+        );
+      }
+
+      to = parsedTo;
+    }
+
+    if (from && to && from > to) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "The from date cannot be later than the to date",
+        },
+        { status: 400 },
+      );
+    }
+
+    // -----------------------------
+    // Pagination
+    // -----------------------------
+
     const pageParam = Number(
       searchParams.get("page") || "1",
     );
@@ -122,7 +224,8 @@ export async function GET(request: NextRequest) {
     );
 
     const page =
-      Number.isInteger(pageParam) && pageParam > 0
+      Number.isInteger(pageParam) &&
+      pageParam > 0
         ? pageParam
         : 1;
 
@@ -133,12 +236,19 @@ export async function GET(request: NextRequest) {
         ? limitParam
         : 20;
 
+    // -----------------------------
+    // Fetch audit logs
+    // -----------------------------
+
     const result = await getAuditLogs({
       userId,
+      role,
       action,
       entity,
       entityId,
       search,
+      from,
+      to,
       page,
       limit,
     });

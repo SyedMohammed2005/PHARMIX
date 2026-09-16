@@ -294,6 +294,25 @@ export async function getAuditActivityByUser() {
     actionCount: group._count.userId,
   }));
 }
+
+export async function getAuditActivityByEntity() {
+  const entityGroups = await prisma.auditLog.groupBy({
+    by: ["entity"],
+    _count: {
+      entity: true,
+    },
+    orderBy: {
+      _count: {
+        entity: "desc",
+      },
+    },
+  });
+
+  return entityGroups.map((group) => ({
+    entity: group.entity,
+    actionCount: group._count.entity,
+  }));
+}
 export async function getRecentAuditLogs(
   limit = 10,
 ) {

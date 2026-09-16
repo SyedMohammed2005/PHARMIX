@@ -12,6 +12,7 @@ import {
   getAuditLogById,
   getAuditStats,
   getAuditActivityByUser,
+  getAuditActivityByEntity,
 } from "@/services/audit.service";
 
 const AUDIT_VIEW_ROLES = [
@@ -94,6 +95,19 @@ if (activityByUserRequested) {
   return NextResponse.json({
     success: true,
     data: activityByUser,
+  });
+}
+
+const activityByEntityRequested =
+  searchParams.get("byEntity") === "true";
+
+if (activityByEntityRequested) {
+  const activityByEntity =
+    await getAuditActivityByEntity();
+
+  return NextResponse.json({
+    success: true,
+    data: activityByEntity,
   });
 }
 

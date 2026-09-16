@@ -342,6 +342,38 @@ export async function getAuditActivityTrend() {
     }),
   );
 }
+export async function getCriticalAuditLogs(limit = 20) {
+  const criticalActions: AuditAction[] = [
+    AuditAction.DELETE,
+    AuditAction.STOCK_ADJUSTMENT,
+    AuditAction.SALE_RETURNED,
+    AuditAction.SALE_REFUNDED,
+    AuditAction.PURCHASE_RETURNED,
+    AuditAction.ROLE_CHANGED,
+  ];
+
+  return prisma.auditLog.findMany({
+    where: {
+      action: {
+        in: criticalActions,
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: limit,
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+        },
+      },
+    },
+  });
+}
 export async function getRecentAuditLogs(
   limit = 10,
 ) {

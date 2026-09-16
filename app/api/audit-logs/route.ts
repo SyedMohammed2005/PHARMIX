@@ -14,6 +14,7 @@ import {
   getAuditActivityByUser,
   getAuditActivityByEntity,
   getAuditActivityTrend,
+  getCriticalAuditLogs,
 } from "@/services/audit.service";
 
 const AUDIT_VIEW_ROLES = [
@@ -125,6 +126,18 @@ if (activityTrendRequested) {
   });
 }
 
+const criticalLogsRequested =
+  searchParams.get("critical") === "true";
+
+if (criticalLogsRequested) {
+  const criticalLogs =
+    await getCriticalAuditLogs();
+
+  return NextResponse.json({
+    success: true,
+    data: criticalLogs,
+  });
+}
     const userId =
       searchParams.get("userId") || undefined;
 

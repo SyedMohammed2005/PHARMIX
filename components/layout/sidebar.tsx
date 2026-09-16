@@ -128,6 +128,13 @@ const navigationItems: NavigationItem[] = [
     icon: BarChart3,
     roles: ["ADMIN", "BUSINESS_ANALYST"],
   },
+
+    {
+    name: "Audit Logs",
+    href: "/audit-logs",
+    icon: ClipboardList,
+    roles: ["ADMIN", "BUSINESS_ANALYST"],
+  },
    {
     name: "Predictions",
     href: "/predictions",

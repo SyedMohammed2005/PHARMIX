@@ -70,43 +70,43 @@ export async function createAuditLog(
 export async function getAuditLogs(
   filters: AuditLogFilters = {},
 ) {
- const {
-  userId,
-  role,
-  action,
-  entity,
-  entityId,
-  search,
-  from,
-  to,
-  page = 1,
-  limit = 20,
-} = filters;
+  const {
+    userId,
+    role,
+    action,
+    entity,
+    entityId,
+    search,
+    from,
+    to,
+    page = 1,
+    limit = 20,
+  } = filters;
 
   const skip = (page - 1) * limit;
 
- const where: Prisma.AuditLogWhereInput = {
-  ...(userId ? { userId } : {}),
-  ...(action ? { action } : {}),
-  ...(entity ? { entity } : {}),
-  ...(entityId ? { entityId } : {}),
-  ...(role
-    ? {
+  const where: Prisma.AuditLogWhereInput = {
+    ...(userId ? { userId } : {}),
+    ...(action ? { action } : {}),
+    ...(entity ? { entity } : {}),
+    ...(entityId ? { entityId } : {}),
+    ...(role
+      ? {
         user: {
           role,
         },
       }
-    : {}),
-  ...(from || to
-    ? {
+      : {}),
+    ...(from || to
+      ? {
         createdAt: {
           ...(from ? { gte: from } : {}),
           ...(to ? { lte: to } : {}),
         },
       }
-    : {}),
-  ...(search
-    ? {
+      : {}),
+    ...(search
+      ? {
         OR: [
           {
             entity: {
@@ -128,8 +128,8 @@ export async function getAuditLogs(
           },
         ],
       }
-    : {}),
-};
+      : {}),
+  };
 
   const [total, logs] = await Promise.all([
     prisma.auditLog.count({
@@ -284,15 +284,15 @@ export async function getAuditActivityByUser() {
     users.map((user) => [user.id, user]),
   );
 
- return userGroups
-  .filter(
-    (group): group is typeof group & { userId: string } =>
-      Boolean(group.userId),
-  )
-  .map((group) => ({
-    user: userMap.get(group.userId) ?? null,
-    actionCount: group._count.userId,
-  }));
+  return userGroups
+    .filter(
+      (group): group is typeof group & { userId: string } =>
+        Boolean(group.userId),
+    )
+    .map((group) => ({
+      user: userMap.get(group.userId) ?? null,
+      actionCount: group._count.userId,
+    }));
 }
 
 export async function getAuditActivityByEntity() {
@@ -312,6 +312,35 @@ export async function getAuditActivityByEntity() {
     entity: group.entity,
     actionCount: group._count.entity,
   }));
+}
+
+export async function getAuditActivityTrend() {
+  const logs = await prisma.auditLog.findMany({
+    select: {
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  const trendMap = new Map<string, number>();
+
+  for (const log of logs) {
+    const date = log.createdAt.toISOString().split("T")[0];
+
+    trendMap.set(
+      date,
+      (trendMap.get(date) ?? 0) + 1,
+    );
+  }
+
+  return Array.from(trendMap.entries()).map(
+    ([date, actionCount]) => ({
+      date,
+      actionCount,
+    }),
+  );
 }
 export async function getRecentAuditLogs(
   limit = 10,

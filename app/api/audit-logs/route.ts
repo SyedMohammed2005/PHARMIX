@@ -13,6 +13,7 @@ import {
   getAuditStats,
   getAuditActivityByUser,
   getAuditActivityByEntity,
+  getAuditActivityTrend,
 } from "@/services/audit.service";
 
 const AUDIT_VIEW_ROLES = [
@@ -108,6 +109,19 @@ if (activityByEntityRequested) {
   return NextResponse.json({
     success: true,
     data: activityByEntity,
+  });
+}
+
+const activityTrendRequested =
+  searchParams.get("trend") === "true";
+
+if (activityTrendRequested) {
+  const activityTrend =
+    await getAuditActivityTrend();
+
+  return NextResponse.json({
+    success: true,
+    data: activityTrend,
   });
 }
 

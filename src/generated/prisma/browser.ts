@@ -28,6 +28,11 @@ export type User = Prisma.UserModel
  */
 export type AuditLog = Prisma.AuditLogModel
 /**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel
+/**
  * Model Inventory
  * 
  */

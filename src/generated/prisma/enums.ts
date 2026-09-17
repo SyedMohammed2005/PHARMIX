@@ -76,3 +76,31 @@ export const StockTransactionType = {
 } as const
 
 export type StockTransactionType = (typeof StockTransactionType)[keyof typeof StockTransactionType]
+
+
+export const NotificationType = {
+  LOW_STOCK: 'LOW_STOCK',
+  STOCKOUT_RISK: 'STOCKOUT_RISK',
+  EXPIRY_RISK: 'EXPIRY_RISK',
+  DEMAND_SPIKE: 'DEMAND_SPIKE',
+  DEMAND_DROP: 'DEMAND_DROP',
+  WEATHER_SIGNAL: 'WEATHER_SIGNAL',
+  FORECAST_UPDATE: 'FORECAST_UPDATE',
+  PURCHASE_ALERT: 'PURCHASE_ALERT',
+  SUPPLIER_ALERT: 'SUPPLIER_ALERT',
+  AUDIT_ALERT: 'AUDIT_ALERT',
+  AI_INSIGHT: 'AI_INSIGHT',
+  SYSTEM: 'SYSTEM'
+} as const
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
+
+
+export const NotificationSeverity = {
+  CRITICAL: 'CRITICAL',
+  WARNING: 'WARNING',
+  INFO: 'INFO',
+  SUCCESS: 'SUCCESS'
+} as const
+
+export type NotificationSeverity = (typeof NotificationSeverity)[keyof typeof NotificationSeverity]

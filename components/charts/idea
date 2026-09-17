@@ -1,0 +1,43 @@
+🛠️ Implementation order
+
+We should not start with the Copilot UI.
+
+We'll build it like a real system:
+
+Phase 1 — Notification infrastructure
+
+Step 1: design notification model
+Step 2: Prisma migration
+Step 3: notification service
+Step 4: notification API
+Step 5: connect existing PHARMIX signals
+Step 6: navbar notification bell
+Step 7: notification dropdown
+Step 8: notification details/read state
+Step 9: TypeScript + API + browser testing
+Step 10: Git checkpoint
+
+Phase 2 — Medicine Intelligence
+
+Step 1: medicine-information schema
+Step 2: source/reference structure
+Step 3: medicine information API
+Step 4: medicine details UI
+Step 5: configured alternatives
+Step 6: substitution API
+Step 7: pharmacist confirmation workflow
+Step 8: testing
+Step 9: Git checkpoint
+
+Phase 3 — AI Pharmacy Copilot
+
+Step 1: define supported intents
+Step 2: data retrieval layer
+Step 3: context builder
+Step 4: AI service integration
+Step 5: response validation/guardrails
+Step 6: Copilot API
+Step 7: Copilot UI
+Step 8: connect Risk + Medicine Intelligence + existing analytics/predictions
+Step 9: testing
+Step 10: Git checkpoint

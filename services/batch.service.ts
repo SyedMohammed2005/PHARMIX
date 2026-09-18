@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/services/audit.service";
-import { AuditAction } from "../src/generated/prisma/client";
+import { createNotification } from "@/services/notification.service";
+
+import {
+  AuditAction,
+  NotificationSeverity,
+  NotificationType,
+} from "../src/generated/prisma/client";
 
 export async function getBatches() {
   return prisma.batch.findMany({
@@ -187,7 +193,9 @@ export async function deleteBatch(
   return true;
 }
 
-export async function getExpiringBatches(days = 30) {
+export async function getExpiringBatches(
+  days = 30,
+) {
   const today = new Date();
   const futureDate = new Date(today);
 
@@ -233,4 +241,110 @@ export async function getExpiredBatches() {
       expiryDate: "asc",
     },
   });
+}
+
+export async function createExpiryRiskNotification(
+  batchId: string,
+  userId: string,
+  days = 30,
+) {
+  const batch = await prisma.batch.findUnique({
+    where: {
+      id: batchId,
+    },
+    include: {
+      product: true,
+    },
+  });
+
+  if (!batch) {
+    return null;
+  }
+
+  if (batch.quantity <= 0) {
+    return null;
+  }
+
+  const today = new Date();
+
+  const expiryTime =
+    batch.expiryDate.getTime();
+
+  const todayTime =
+    today.getTime();
+
+  const millisecondsPerDay =
+    1000 * 60 * 60 * 24;
+
+  const daysUntilExpiry = Math.ceil(
+    (expiryTime - todayTime) /
+      millisecondsPerDay,
+  );
+
+  if (
+    daysUntilExpiry < 0 ||
+    daysUntilExpiry > days
+  ) {
+    return null;
+  }
+
+  const existingNotification =
+    await prisma.notification.findFirst({
+      where: {
+        userId,
+        type: NotificationType.EXPIRY_RISK,
+        entity: "Batch",
+        entityId: batch.id,
+        isRead: false,
+      },
+    });
+if (existingNotification) {
+  return null;
+}
+  const severity =
+    daysUntilExpiry <= 7
+      ? NotificationSeverity.CRITICAL
+      : NotificationSeverity.WARNING;
+
+  return createNotification({
+    userId,
+    type: NotificationType.EXPIRY_RISK,
+    severity,
+    title: "Batch expiry risk",
+    message:
+      daysUntilExpiry === 0
+        ? `${batch.product.name} batch "${batch.batchNumber}" expires today. Remaining quantity: ${batch.quantity}.`
+        : `${batch.product.name} batch "${batch.batchNumber}" expires in ${daysUntilExpiry} day${daysUntilExpiry === 1 ? "" : "s"}. Remaining quantity: ${batch.quantity}.`,
+    entity: "Batch",
+    entityId: batch.id,
+  });
+}
+
+export async function generateExpiryRiskNotifications(
+  userId: string,
+  days = 30,
+) {
+  const expiringBatches =
+    await getExpiringBatches(days);
+
+  const notifications = [];
+
+  for (const batch of expiringBatches) {
+    const notification =
+      await createExpiryRiskNotification(
+        batch.id,
+        userId,
+        days,
+      );
+
+    if (notification) {
+      notifications.push(notification);
+    }
+  }
+
+  return {
+    checkedBatches: expiringBatches.length,
+    notificationsCreated: notifications.length,
+    notifications,
+  };
 }

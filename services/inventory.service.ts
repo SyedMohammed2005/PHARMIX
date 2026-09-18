@@ -1,7 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { createInventorySchema } from "@/lib/validations/inventory";
 import { createAuditLog } from "@/services/audit.service";
-import { AuditAction } from "../src/generated/prisma/client";
+import { createNotification } from "@/services/notification.service";
+
+import {
+  AuditAction,
+  NotificationSeverity,
+  NotificationType,
+} from "../src/generated/prisma/client";
+
 import { z } from "zod";
 
 type CreateInventoryInput = z.infer<
@@ -35,7 +42,7 @@ export async function getInventory() {
 
 export async function createInventory(
   data: CreateInventoryInput,
-  userId: string
+  userId: string,
 ) {
   // Check product exists
   const product = await prisma.product.findUnique({
@@ -58,7 +65,7 @@ export async function createInventory(
 
   if (existingInventory) {
     throw new Error(
-      "Inventory already exists for this product"
+      "Inventory already exists for this product",
     );
   }
 
@@ -68,7 +75,7 @@ export async function createInventory(
     data.maximumStock < data.minimumStock
   ) {
     throw new Error(
-      "Maximum stock cannot be less than minimum stock"
+      "Maximum stock cannot be less than minimum stock",
     );
   }
 
@@ -100,7 +107,7 @@ export async function createInventory(
 export async function updateInventory(
   id: string,
   data: UpdateInventoryInput,
-  userId: string
+  userId: string,
 ) {
   // Find existing inventory
   const existingInventory =
@@ -117,16 +124,33 @@ export async function updateInventory(
 
   // Calculate final values
   const minimumStock =
-    data.minimumStock ?? existingInventory.minimumStock;
+    data.minimumStock ??
+    existingInventory.minimumStock;
 
   const maximumStock =
-    data.maximumStock ?? existingInventory.maximumStock;
+    data.maximumStock ??
+    existingInventory.maximumStock;
 
   const quantity =
-    data.quantity ?? existingInventory.quantity;
+    data.quantity ??
+    existingInventory.quantity;
 
   const reorderPoint =
-    data.reorderPoint ?? existingInventory.reorderPoint;
+    data.reorderPoint ??
+    existingInventory.reorderPoint;
+
+  // Determine previous and new low-stock states
+  const wasLowStock =
+    existingInventory.reorderPoint !== null &&
+    existingInventory.quantity <=
+      existingInventory.reorderPoint;
+
+  const isLowStock =
+    reorderPoint !== null &&
+    quantity <= reorderPoint;
+
+  const enteredLowStock =
+    !wasLowStock && isLowStock;
 
   // Validate minimum and maximum stock
   if (
@@ -134,7 +158,7 @@ export async function updateInventory(
     maximumStock < minimumStock
   ) {
     throw new Error(
-      "Maximum stock cannot be less than minimum stock"
+      "Maximum stock cannot be less than minimum stock",
     );
   }
 
@@ -144,7 +168,7 @@ export async function updateInventory(
     quantity > maximumStock
   ) {
     throw new Error(
-      "Quantity cannot exceed maximum stock"
+      "Quantity cannot exceed maximum stock",
     );
   }
 
@@ -154,7 +178,7 @@ export async function updateInventory(
     reorderPoint < minimumStock
   ) {
     throw new Error(
-      "Reorder point cannot be less than minimum stock"
+      "Reorder point cannot be less than minimum stock",
     );
   }
 
@@ -164,7 +188,7 @@ export async function updateInventory(
     reorderPoint > maximumStock
   ) {
     throw new Error(
-      "Reorder point cannot be greater than maximum stock"
+      "Reorder point cannot be greater than maximum stock",
     );
   }
 
@@ -188,7 +212,7 @@ export async function updateInventory(
     : AuditAction.UPDATE;
 
   // Build audit description
-  let description = quantityChanged
+  const description = quantityChanged
     ? `Inventory quantity for product "${existingInventory.product.name}" was adjusted from ${existingInventory.quantity} to ${updatedInventory.quantity}`
     : `Inventory settings for product "${existingInventory.product.name}" were updated`;
 
@@ -202,6 +226,20 @@ export async function updateInventory(
     beforeData: existingInventory,
     afterData: updatedInventory,
   });
+
+  // Create low-stock notification only when
+  // inventory enters the low-stock state
+  if (enteredLowStock) {
+    await createNotification({
+      userId,
+      type: NotificationType.LOW_STOCK,
+      severity: NotificationSeverity.WARNING,
+      title: "Low stock detected",
+      message: `${existingInventory.product.name} has reached or fallen below its reorder point. Current stock: ${quantity}. Reorder point: ${reorderPoint}.`,
+      entity: "Inventory",
+      entityId: updatedInventory.id,
+    });
+  }
 
   return updatedInventory;
 }

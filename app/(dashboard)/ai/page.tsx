@@ -730,6 +730,7 @@ export default function AIDemandIntelligencePage() {
             </button>
           ))}
         </div>
+        
         {/* =====================================================
             EXECUTIVE OVERVIEW
         ====================================================== */}

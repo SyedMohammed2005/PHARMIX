@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   Check,
@@ -9,8 +11,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+
 
 type DashboardHeaderProps = {
   role: string;
@@ -61,8 +62,21 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   const router = useRouter();
 
-  const [loading, setLoading] =
-    useState(false);
+  // --------------------------------------------------
+  // General header state
+  // --------------------------------------------------
+
+  const [loading, setLoading] = useState(false);
+
+  // --------------------------------------------------
+  // Copilot state
+  // --------------------------------------------------
+
+  
+
+  // --------------------------------------------------
+  // Notification state
+  // --------------------------------------------------
 
   const [notifications, setNotifications] =
     useState<NotificationItem[]>([]);
@@ -78,6 +92,10 @@ export function DashboardHeader({
 
   const notificationRef =
     useRef<HTMLDivElement>(null);
+
+  // --------------------------------------------------
+  // Load notifications
+  // --------------------------------------------------
 
   async function loadNotifications() {
     try {
@@ -119,18 +137,26 @@ export function DashboardHeader({
     }
   }
 
+  // --------------------------------------------------
+  // Initial notification loading + polling
+  // --------------------------------------------------
+
   useEffect(() => {
     loadNotifications();
 
-    const interval = setInterval(
+    const interval = window.setInterval(
       loadNotifications,
       30000,
     );
 
     return () => {
-      clearInterval(interval);
+      window.clearInterval(interval);
     };
   }, []);
+
+  // --------------------------------------------------
+  // Close notification dropdown when clicking outside
+  // --------------------------------------------------
 
   useEffect(() => {
     function handleOutsideClick(
@@ -158,6 +184,10 @@ export function DashboardHeader({
       );
     };
   }, []);
+
+  // --------------------------------------------------
+  // Notification navigation
+  // --------------------------------------------------
 
   function getNotificationHref(
     notification: NotificationItem,
@@ -191,8 +221,6 @@ export function DashboardHeader({
         return "/audit-logs";
 
       case "PURCHASE_ALERT":
-        return "/purchases";
-
       case "SUPPLIER_ALERT":
         return "/purchases";
 
@@ -204,6 +232,10 @@ export function DashboardHeader({
         return null;
     }
   }
+
+  // --------------------------------------------------
+  // Mark individual notification as read
+  // --------------------------------------------------
 
   async function markAsRead(
     notificationId: string,
@@ -242,6 +274,10 @@ export function DashboardHeader({
     }
   }
 
+  // --------------------------------------------------
+  // Notification navigation
+  // --------------------------------------------------
+
   async function handleNotificationNavigation(
     notification: NotificationItem,
   ) {
@@ -259,6 +295,10 @@ export function DashboardHeader({
       router.push(href);
     }
   }
+
+  // --------------------------------------------------
+  // Mark all notifications as read
+  // --------------------------------------------------
 
   async function markAllAsRead() {
     try {
@@ -288,6 +328,10 @@ export function DashboardHeader({
       );
     }
   }
+
+  // --------------------------------------------------
+  // Notification severity icon
+  // --------------------------------------------------
 
   function getSeverityIcon(
     severity: NotificationSeverity,
@@ -327,6 +371,10 @@ export function DashboardHeader({
     );
   }
 
+  // --------------------------------------------------
+  // Notification severity background
+  // --------------------------------------------------
+
   function getSeverityBackground(
     severity: NotificationSeverity,
   ) {
@@ -344,6 +392,10 @@ export function DashboardHeader({
 
     return "bg-blue-50";
   }
+
+  // --------------------------------------------------
+  // Notification timestamp formatting
+  // --------------------------------------------------
 
   function formatNotificationTime(
     createdAt: string,
@@ -365,6 +417,10 @@ export function DashboardHeader({
     );
   }
 
+  // --------------------------------------------------
+  // Logout
+  // --------------------------------------------------
+
   async function handleLogout() {
     try {
       setLoading(true);
@@ -385,22 +441,47 @@ export function DashboardHeader({
     }
   }
 
+  // --------------------------------------------------
+  // Render
+  // --------------------------------------------------
+
   return (
-    <header className="flex h-16 items-center justify-between border-b border-gray-100 bg-white px-6 shadow-sm">
-      {/* Page information */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900">
+    <header className="relative flex h-16 items-center justify-between border-b border-gray-100 bg-white px-4 shadow-sm sm:px-6">
+      {/* ------------------------------------------------
+          Page information
+      ------------------------------------------------ */}
+
+      <div className="min-w-0">
+        <h2 className="truncate text-lg font-semibold text-gray-900">
           Dashboard
         </h2>
 
-        <p className="text-sm text-gray-500">
+        <p className="hidden text-sm text-gray-500 sm:block">
           Pharmacy management overview
         </p>
       </div>
 
-      {/* Right-side actions */}
-      <div className="flex items-center gap-4">
-        {/* Notification Center */}
+      {/* ------------------------------------------------
+          Right-side actions
+      ------------------------------------------------ */}
+
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* ------------------------------------------------
+            AI Copilot
+        ------------------------------------------------ */}
+
+      
+
+        {/* ------------------------------------------------
+            Divider
+        ------------------------------------------------ */}
+
+        <div className="hidden h-7 w-px bg-gray-200 sm:block" />
+
+        {/* ------------------------------------------------
+            Notification Center
+        ------------------------------------------------ */}
+
         <div
           ref={notificationRef}
           className="relative"
@@ -416,7 +497,8 @@ export function DashboardHeader({
             aria-expanded={
               notificationOpen
             }
-            className="group relative rounded-xl p-2.5 text-gray-500 transition-all duration-200 hover:bg-emerald-50 hover:text-emerald-600"
+            title="Notifications"
+            className="group relative flex h-10 w-10 items-center justify-center rounded-xl text-gray-500 transition-all duration-200 hover:bg-emerald-50 hover:text-emerald-600"
           >
             <Bell
               size={21}
@@ -424,7 +506,7 @@ export function DashboardHeader({
             />
 
             {unreadCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm">
+              <span className="absolute -right-0.5 -top-0.5 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
                 {unreadCount > 99
                   ? "99+"
                   : unreadCount}
@@ -432,10 +514,13 @@ export function DashboardHeader({
             )}
           </button>
 
-          {/* Notification Dropdown */}
+          {/* ------------------------------------------------
+              Notification Dropdown
+          ------------------------------------------------ */}
+
           {notificationOpen && (
-            <div className="absolute right-0 top-12 z-50 w-[380px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-gray-200/60">
-              {/* Header */}
+            <div className="absolute right-0 top-12 z-50 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-gray-200/60">
+              {/* Dropdown header */}
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">
@@ -468,7 +553,7 @@ export function DashboardHeader({
                       )
                     }
                     aria-label="Close notifications"
-                    className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                   >
                     <X size={16} />
                   </button>
@@ -531,7 +616,7 @@ export function DashboardHeader({
                               )}
                             </div>
 
-                            {/* Content */}
+                            {/* Notification content */}
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start justify-between gap-2">
                                 <p
@@ -573,7 +658,7 @@ export function DashboardHeader({
                                           notification.id,
                                         )
                                       }
-                                      className="text-[11px] font-medium text-emerald-600 hover:text-emerald-700"
+                                      className="text-[11px] font-medium text-emerald-600 transition-colors hover:text-emerald-700"
                                     >
                                       Mark as read
                                     </button>
@@ -587,7 +672,7 @@ export function DashboardHeader({
                                           notification,
                                         )
                                       }
-                                      className="text-[11px] font-semibold text-gray-700 hover:text-emerald-600"
+                                      className="text-[11px] font-semibold text-gray-700 transition-colors hover:text-emerald-600"
                                     >
                                       View details →
                                     </button>
@@ -603,7 +688,7 @@ export function DashboardHeader({
                 )}
               </div>
 
-              {/* Footer */}
+              {/* Dropdown footer */}
               <div className="border-t border-gray-100 bg-gray-50/70 px-4 py-3">
                 <button
                   type="button"
@@ -621,34 +706,53 @@ export function DashboardHeader({
           )}
         </div>
 
-        {/* User */}
-        <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
-          <div className="rounded-full bg-emerald-50 p-2">
+        {/* ------------------------------------------------
+            User
+        ------------------------------------------------ */}
+
+        <div className="flex items-center gap-2 border-l border-gray-200 pl-2 sm:pl-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50">
             <User
               size={18}
               className="text-emerald-600"
             />
           </div>
 
-          <span className="text-sm font-medium text-gray-700">
+          <span className="hidden text-sm font-medium text-gray-700 md:block">
             {role}
           </span>
         </div>
 
-        {/* Logout */}
+        {/* ------------------------------------------------
+            Logout
+        ------------------------------------------------ */}
+
         <button
           type="button"
           onClick={handleLogout}
           disabled={loading}
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+          title="Logout"
+          className="flex h-10 items-center gap-2 rounded-xl px-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3"
         >
           <LogOut size={18} />
 
-          {loading
-            ? "Logging out..."
-            : "Logout"}
+          <span className="hidden lg:inline">
+            {loading
+              ? "Logging out..."
+              : "Logout"}
+          </span>
         </button>
       </div>
+
+      {/* ------------------------------------------------
+          AI Pharmacy Copilot
+          
+          This is intentionally outside the header
+          content flow because the panel is fixed.
+      ------------------------------------------------ */}
+
+      
+      
     </header>
   );
 }

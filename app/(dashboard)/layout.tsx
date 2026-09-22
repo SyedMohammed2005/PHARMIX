@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/authorization";
 import { Sidebar } from "@/components/layout/sidebar";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
+import CopilotWidget from "@/components/copilot/copilot-widget";
 
 export default async function DashboardLayout({
   children,
@@ -15,7 +16,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="relative flex min-h-screen">
       <Sidebar role={currentUser.role} />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -25,6 +26,9 @@ export default async function DashboardLayout({
           {children}
         </main>
       </div>
+
+      {/* Global floating Copilot */}
+      <CopilotWidget />
     </div>
   );
 }

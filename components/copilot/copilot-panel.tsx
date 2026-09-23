@@ -262,6 +262,109 @@ function getCurrentTime() {
   ).format(new Date());
 }
 
+function getGreetingResponse(question: string) {
+  const normalized = question.trim().toLowerCase();
+
+  if (/^(hi|hello|hey)([!.?,\s]*)$/i.test(normalized)) {
+    return "Hello! 👋 I’m PHARMIX Copilot. How can I help you with your pharmacy operations today?";
+  }
+
+  if (
+    /^(thanks|thank you|thankyou|thank u|thx)([!.?,\s]*)$/i.test(
+      normalized,
+    )
+  ) {
+    return "You’re welcome! I’m here whenever you need help with PHARMIX.";
+  }
+
+  return null;
+}
+
+function isSupportedCopilotQuestion(question: string) {
+  const normalized = question.trim().toLowerCase();
+
+  const supportedKeywords = [
+    "inventory",
+    "stock",
+    "stockout",
+    "reorder",
+    "reordering",
+    "demand",
+    "forecast",
+    "expiry",
+    "expire",
+    "seasonal",
+    "season",
+    "weather",
+    "alert",
+    "notification",
+    "risk",
+    "medicine",
+    "medicines",
+    "product",
+    "products",
+    "batch",
+  ];
+
+  return supportedKeywords.some((keyword) =>
+    normalized.includes(keyword),
+  );
+}
+
+function getFollowUpSuggestions(
+  category: CopilotCategory | null,
+) {
+  switch (category) {
+    case "inventory":
+      return [
+        "Show low-stock products",
+        "Show stockout risks",
+      ];
+
+    case "stockout":
+      return [
+        "Show high-risk products",
+        "What should I reorder?",
+      ];
+
+    case "reorder":
+      return [
+        "Show products to reorder",
+        "Show recommended quantities",
+      ];
+
+    case "demand":
+      return [
+        "Show increasing demand",
+        "Show demand spikes",
+      ];
+
+    case "expiry":
+      return [
+        "Show batches expiring soon",
+        "Show critical expiry risks",
+      ];
+
+    case "seasonal":
+      return [
+        "Show seasonal demand",
+        "Show weather-related demand",
+      ];
+
+    case "alerts":
+      return [
+        "Show critical alerts",
+        "Show unread alerts",
+      ];
+
+    default:
+      return [
+        "Show inventory overview",
+        "Show stockout risks",
+      ];
+  }
+}
+
 function renderHighlightedText(
   text: string,
 ) {
@@ -416,6 +519,12 @@ export default function CopilotPanel({
   const [expandedMessages, setExpandedMessages] =
     useState<Record<string, boolean>>({});
 
+  const [followUpSuggestions, setFollowUpSuggestions] =
+    useState<string[]>([]);
+
+  const [showFallbackMenu, setShowFallbackMenu] =
+    useState(false);
+
   const lastQuestionRef =
     useRef("");
 
@@ -488,6 +597,8 @@ export default function CopilotPanel({
     setLoading(false);
     setTypingResponse(false);
     setExpandedMessages({});
+    setFollowUpSuggestions([]);
+    setShowFallbackMenu(false);
     lastQuestionRef.current = "";
   }
 
@@ -512,6 +623,8 @@ export default function CopilotPanel({
     setSelectedCategory(null);
     setTypingResponse(false);
     setExpandedMessages({});
+    setFollowUpSuggestions([]);
+    setShowFallbackMenu(false);
   }
 
   function goBackToCategory() {
@@ -528,6 +641,8 @@ export default function CopilotPanel({
     setError("");
     setTypingResponse(false);
     setExpandedMessages({});
+    setFollowUpSuggestions([]);
+    setShowFallbackMenu(false);
   }
 
   function typeAssistantResponse(
@@ -608,6 +723,8 @@ export default function CopilotPanel({
       finalQuestion;
 
     setQuestion("");
+    setFollowUpSuggestions([]);
+    setShowFallbackMenu(false);
     setError("");
     setTypingResponse(false);
 
@@ -629,6 +746,57 @@ export default function CopilotPanel({
       ...current,
       userMessage,
     ]);
+
+    const greetingResponse =
+      getGreetingResponse(finalQuestion);
+
+    if (greetingResponse) {
+      const assistantMessageId =
+        crypto.randomUUID();
+
+      const assistantMessage: Message = {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+        timestamp: getCurrentTime(),
+      };
+
+      setMessages((current) => [
+        ...current,
+        assistantMessage,
+      ]);
+
+      setLoading(false);
+
+      typeAssistantResponse(
+        assistantMessageId,
+        greetingResponse,
+      );
+
+      return;
+    }
+
+    if (!isSupportedCopilotQuestion(finalQuestion)) {
+      const assistantMessageId =
+        crypto.randomUUID();
+
+      const assistantMessage: Message = {
+        id: assistantMessageId,
+        role: "assistant",
+        content:
+          "I can help with PHARMIX pharmacy operations. Please choose one of the options below.",
+        timestamp: getCurrentTime(),
+      };
+
+      setMessages((current) => [
+        ...current,
+        assistantMessage,
+      ]);
+
+      setLoading(false);
+      setShowFallbackMenu(true);
+      return;
+    }
 
     setLoading(true);
 
@@ -695,6 +863,11 @@ export default function CopilotPanel({
       ]);
 
       setLoading(false);
+      setFollowUpSuggestions(
+        getFollowUpSuggestions(
+          selectedCategory,
+        ),
+      );
 
       typeAssistantResponse(
         assistantMessageId,
@@ -726,6 +899,7 @@ export default function CopilotPanel({
 
       setLoading(false);
       setTypingResponse(false);
+      setFollowUpSuggestions([]);
     } finally {
       window.setTimeout(() => {
         inputRef.current?.focus();
@@ -920,8 +1094,8 @@ export default function CopilotPanel({
             <button
               type="button"
               onClick={goToMainMenu}
-              aria-label="Clear conversation"
-              title="Clear conversation"
+              aria-label="Main menu"
+              title="Main menu"
               className="
                 flex
                 h-7
@@ -939,7 +1113,7 @@ export default function CopilotPanel({
             </button>
           )}
 
-          {selectedCategory && (
+          {selectedCategory && messages.length === 0 && (
             <button
               type="button"
               onClick={goToMainMenu}
@@ -1406,6 +1580,150 @@ export default function CopilotPanel({
                 );
               },
             )}
+
+            {/* FOLLOW-UP SUGGESTIONS */}
+            {!loading &&
+              !typingResponse &&
+              hasAssistantResponse &&
+              followUpSuggestions.length > 0 && (
+                <div className="pt-1">
+                  <p className="mb-2 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                    Ask a follow-up
+                  </p>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {followUpSuggestions.map(
+                      (suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onClick={() => {
+                            setFollowUpSuggestions([]);
+                            void askCopilot(
+                              suggestion,
+                            );
+                          }}
+                          disabled={
+                            loading ||
+                            typingResponse
+                          }
+                          className="
+                            rounded-lg
+                            border
+                            border-slate-200
+                            bg-white
+                            px-2.5
+                            py-1.5
+                            text-[9px]
+                            font-medium
+                            text-slate-600
+                            shadow-sm
+                            transition-all
+                            hover:border-emerald-200
+                            hover:bg-emerald-50/40
+                            hover:text-emerald-700
+                            disabled:cursor-not-allowed
+                            disabled:opacity-50
+                          "
+                        >
+                          {suggestion}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {/* FALLBACK CATEGORY MENU */}
+            {showFallbackMenu &&
+              !loading &&
+              !typingResponse && (
+                <div className="pt-1">
+                  <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    Explore PHARMIX
+                  </p>
+
+                  <div className="space-y-1.5">
+                    {categories.map((category) => {
+                      const Icon = category.icon;
+
+                      return (
+                        <button
+                          key={category.id}
+                          type="button"
+                          onClick={() => {
+                            setMessages([]);
+                            setFollowUpSuggestions([]);
+                            setShowFallbackMenu(false);
+                            setSelectedCategory(
+                              category.id,
+                            );
+                          }}
+                          className="
+                            group
+                            flex
+                            w-full
+                            items-center
+                            gap-2.5
+                            rounded-xl
+                            border
+                            border-slate-200
+                            bg-white
+                            px-2.5
+                            py-2
+                            text-left
+                            transition-all
+                            duration-200
+                            hover:border-emerald-200
+                            hover:bg-emerald-50/40
+                            hover:shadow-sm
+                          "
+                        >
+                          <div
+                            className="
+                              flex
+                              h-7
+                              w-7
+                              shrink-0
+                              items-center
+                              justify-center
+                              rounded-lg
+                              bg-slate-50
+                              text-slate-500
+                              transition-colors
+                              group-hover:bg-emerald-100
+                              group-hover:text-emerald-600
+                            "
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10.5px] font-semibold text-slate-800">
+                              {category.label}
+                            </p>
+
+                            <p className="mt-0.5 truncate text-[9px] text-slate-500">
+                              {category.description}
+                            </p>
+                          </div>
+
+                          <ChevronRight
+                            className="
+                              h-3.5
+                              w-3.5
+                              shrink-0
+                              text-slate-300
+                              transition-colors
+                              group-hover:text-emerald-500
+                            "
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
             {/* TYPING INDICATOR */}
             {(loading ||

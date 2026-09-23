@@ -11,6 +11,20 @@ type IntentRule = {
 
 const INTENT_RULES: IntentRule[] = [
   {
+    intent: "GREETING",
+    keywords: [
+      "hi",
+      "hello",
+      "hey",
+      "good morning",
+      "good afternoon",
+      "good evening",
+    ],
+    reason:
+      "The question contains a common conversational greeting.",
+  },
+
+  {
     intent: "STOCKOUT_RISK",
     keywords: [
       "stockout",
@@ -152,11 +166,22 @@ export function detectCopilotIntent(
 
   for (const rule of INTENT_RULES) {
     const matchedKeyword =
-      rule.keywords.find((keyword) =>
-        normalizedQuestion.includes(
-          keyword,
-        ),
-      );
+      rule.intent === "GREETING"
+        ? rule.keywords.find((keyword) => {
+            const escapedKeyword = keyword.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&",
+            );
+
+            const pattern = new RegExp(
+              `(^|\\s)${escapedKeyword}(?=\\s|$|[!?.,])`,
+            );
+
+            return pattern.test(normalizedQuestion);
+          })
+        : rule.keywords.find((keyword) =>
+            normalizedQuestion.includes(keyword),
+          );
 
     if (matchedKeyword) {
       return {

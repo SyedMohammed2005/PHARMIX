@@ -5,7 +5,8 @@ export type CopilotIntent =
   | "DEMAND_TREND"
   | "EXPIRY_RISK"
   | "SEASONAL_DEMAND"
-  | "NOTIFICATION_SUMMARY";
+  | "NOTIFICATION_SUMMARY"
+  | "GREETING";
 
 export type CopilotContextSource =
   | "INVENTORY_SUMMARY"

@@ -37,11 +37,20 @@ ${JSON.stringify(context.evidence, null, 2)}
 Answer the user's question using the PHARMIX evidence above.
 `;
 }
-
 export async function generateCopilotResponse(
   context: CopilotContext,
   confidence: number,
 ): Promise<CopilotResponse> {
+  if (context.intent === "GREETING") {
+    return {
+      answer:
+        "Hi! 👋 I'm PHARMIX Copilot.\n\nI can help you with:\n• Inventory\n• Stockout risks\n• Reordering\n• Demand trends\n• Expiry risks\n• Seasonal demand\n• Alerts",
+      intent: context.intent,
+      confidence,
+      evidence: context.evidence,
+    };
+  }
+
   const prompt = buildCopilotPrompt(context);
 
   const response =

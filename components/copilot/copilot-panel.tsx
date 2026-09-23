@@ -312,56 +312,102 @@ function isSupportedCopilotQuestion(question: string) {
 }
 
 function getFollowUpSuggestions(
+  intent: string,
   category: CopilotCategory | null,
 ) {
-  switch (category) {
-    case "inventory":
+  switch (intent) {
+    case "INVENTORY_OVERVIEW":
       return [
         "Show low-stock products",
         "Show stockout risks",
       ];
 
-    case "stockout":
+    case "STOCKOUT_RISK":
       return [
         "Show high-risk products",
         "What should I reorder?",
       ];
 
-    case "reorder":
+    case "REORDER":
       return [
         "Show products to reorder",
         "Show recommended quantities",
       ];
 
-    case "demand":
+    case "DEMAND_TREND":
       return [
         "Show increasing demand",
         "Show demand spikes",
       ];
 
-    case "expiry":
+    case "EXPIRY_RISK":
       return [
         "Show batches expiring soon",
         "Show critical expiry risks",
       ];
 
-    case "seasonal":
+    case "SEASONAL_DEMAND":
       return [
         "Show seasonal demand",
         "Show weather-related demand",
       ];
 
-    case "alerts":
+    case "NOTIFICATION_SUMMARY":
       return [
         "Show critical alerts",
         "Show unread alerts",
       ];
 
     default:
-      return [
-        "Show inventory overview",
-        "Show stockout risks",
-      ];
+      switch (category) {
+        case "inventory":
+          return [
+            "Show low-stock products",
+            "Show stockout risks",
+          ];
+
+        case "stockout":
+          return [
+            "Show high-risk products",
+            "What should I reorder?",
+          ];
+
+        case "reorder":
+          return [
+            "Show products to reorder",
+            "Show recommended quantities",
+          ];
+
+        case "demand":
+          return [
+            "Show increasing demand",
+            "Show demand spikes",
+          ];
+
+        case "expiry":
+          return [
+            "Show batches expiring soon",
+            "Show critical expiry risks",
+          ];
+
+        case "seasonal":
+          return [
+            "Show seasonal demand",
+            "Show weather-related demand",
+          ];
+
+        case "alerts":
+          return [
+            "Show critical alerts",
+            "Show unread alerts",
+          ];
+
+        default:
+          return [
+            "Show inventory overview",
+            "Show stockout risks",
+          ];
+      }
   }
 }
 
@@ -865,6 +911,7 @@ export default function CopilotPanel({
       setLoading(false);
       setFollowUpSuggestions(
         getFollowUpSuggestions(
+          result.intent,
           selectedCategory,
         ),
       );

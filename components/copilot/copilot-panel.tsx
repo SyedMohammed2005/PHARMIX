@@ -34,11 +34,15 @@ interface Message {
   status?: "sending" | "sent";
   timestamp: string;
 }
-
 interface CopilotResult {
   answer: string;
   intent: string;
   confidence: number;
+  timePeriod?: {
+    days: number;
+    label: string;
+    matchedPhrase?: string;
+  };
   validation?: {
     valid: boolean;
     warnings: string[];
@@ -306,8 +310,42 @@ function isSupportedCopilotQuestion(question: string) {
     "batch",
   ];
 
-  return supportedKeywords.some((keyword) =>
-    normalized.includes(keyword),
+  const timePeriodKeywords = [
+    "today",
+    "this week",
+    "next week",
+    "next 7 days",
+    "next seven days",
+    "7 days",
+    "seven days",
+    "next 14 days",
+    "next fourteen days",
+    "14 days",
+    "fourteen days",
+    "next 2 weeks",
+    "next two weeks",
+    "2 weeks",
+    "two weeks",
+    "fortnight",
+    "biweekly",
+    "next 30 days",
+    "next thirty days",
+    "30 days",
+    "thirty days",
+    "next month",
+    "this month",
+    "monthly",
+    "one month",
+    "1 month",
+  ];
+
+  return (
+    supportedKeywords.some((keyword) =>
+      normalized.includes(keyword),
+    ) ||
+    timePeriodKeywords.some((keyword) =>
+      normalized.includes(keyword),
+    )
   );
 }
 
@@ -573,6 +611,7 @@ export default function CopilotPanel({
 
   const lastQuestionRef =
     useRef("");
+const lastTimePeriodRef = useRef<number>(7);
 
   const inputRef =
     useRef<HTMLInputElement>(null);
@@ -857,7 +896,7 @@ export default function CopilotPanel({
           },
          body: JSON.stringify({
   question: finalQuestion,
-  days: 7,
+ days: lastTimePeriodRef.current,
   conversationHistory: messages
     .filter(
       (message) =>
@@ -888,6 +927,9 @@ export default function CopilotPanel({
 
       const result =
         data.data as CopilotResult;
+        if (result.timePeriod?.days) {
+  lastTimePeriodRef.current = result.timePeriod.days;
+}
 
       setMessages((current) =>
         current.map((message) =>
@@ -926,10 +968,14 @@ export default function CopilotPanel({
         ),
       );
 
-      typeAssistantResponse(
-        assistantMessageId,
-        result.answer,
-      );
+    const responseContent = result.timePeriod
+  ? `Forecast period: ${result.timePeriod.label}\n\n${result.answer}`
+  : result.answer;
+
+typeAssistantResponse(
+  assistantMessageId,
+  responseContent,
+);
     } catch (err) {
       console.error(
         "Copilot request failed:",

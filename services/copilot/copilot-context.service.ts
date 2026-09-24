@@ -1,50 +1,27 @@
-import {
-  getAIInventorySummary,
-} from "@/services/ai-inventory-summary.service";
-
-import {
-  getInventoryIntelligence,
-} from "@/services/inventory-intelligence.service";
-
-import {
-  getInventoryRecommendations,
-} from "@/services/inventory-recommendation.service";
-
-import {
-  getPredictionMonitoring,
-} from "@/services/prediction-monitoring.service";
-
-import {
-  getDemandIntelligence,
-} from "@/services/demand-intelligence.service";
-
-import {
-  getExpiringBatches,
-} from "@/services/batch.service";
-
-import {
-  getNotifications,
-} from "@/services/notification.service";
-
+import { getAIInventorySummary } from "@/services/ai-inventory-summary.service";
+import { getInventoryIntelligence } from "@/services/inventory-intelligence.service";
+import { getInventoryRecommendations } from "@/services/inventory-recommendation.service";
+import { getPredictionMonitoring } from "@/services/prediction-monitoring.service";
+import { getDemandIntelligence } from "@/services/demand-intelligence.service";
+import { getExpiringBatches } from "@/services/batch.service";
+import { getNotifications } from "@/services/notification.service";
 import {
   CopilotContext,
   CopilotConversationMessage,
   CopilotEvidence,
   CopilotIntent,
+  CopilotTimePeriod,
 } from "@/services/copilot/copilot.types";
 
 interface CopilotContextOptions {
   question: string;
   intent: CopilotIntent;
-
   latitude: number;
   longitude: number;
-
   days?: number;
-
   userId: string;
-
   conversationHistory?: CopilotConversationMessage[];
+  timePeriod?: CopilotTimePeriod;
 }
 
 export async function buildCopilotContext({
@@ -55,22 +32,30 @@ export async function buildCopilotContext({
   days = 7,
   userId,
   conversationHistory = [],
+  timePeriod = {
+    days,
+    label: `next ${days} days`,
+  },
 }: CopilotContextOptions): Promise<CopilotContext> {
   const evidence: CopilotEvidence[] = [];
 
   const forecastDays = Math.min(
-    Math.max(Math.floor(days), 1),
+    Math.max(Math.floor(timePeriod.days || days), 1),
     30,
   );
 
+  const normalizedTimePeriod: CopilotTimePeriod = {
+    ...timePeriod,
+    days: forecastDays,
+  };
+
   switch (intent) {
     case "INVENTORY_OVERVIEW": {
-      const data =
-        await getAIInventorySummary({
-          latitude,
-          longitude,
-          days: forecastDays,
-        });
+      const data = await getAIInventorySummary({
+        latitude,
+        longitude,
+        days: forecastDays,
+      });
 
       evidence.push({
         source: "INVENTORY_SUMMARY",
@@ -82,25 +67,21 @@ export async function buildCopilotContext({
     }
 
     case "STOCKOUT_RISK": {
-      const data =
-        await getInventoryIntelligence({
-          latitude,
-          longitude,
-          days: forecastDays,
-        });
+      const data = await getInventoryIntelligence({
+        latitude,
+        longitude,
+        days: forecastDays,
+      });
 
-      const stockoutProducts =
-        data.products.filter(
-          (product) =>
-            product.priority === "STOCKOUT" ||
-            product.priority ===
-              "URGENT_RESTOCK",
-        );
+      const stockoutProducts = data.products.filter(
+        (product) =>
+          product.priority === "STOCKOUT" ||
+          product.priority === "URGENT_RESTOCK",
+      );
 
       evidence.push({
         source: "INVENTORY_INTELLIGENCE",
-        label:
-          "PHARMIX inventory risk intelligence",
+        label: "PHARMIX inventory risk intelligence",
         data: {
           forecast: data.forecast,
           summary: data.summary,
@@ -112,27 +93,21 @@ export async function buildCopilotContext({
     }
 
     case "REORDER": {
-      const data =
-        await getInventoryRecommendations({
-          latitude,
-          longitude,
-          days: forecastDays,
-        });
+      const data = await getInventoryRecommendations({
+        latitude,
+        longitude,
+        days: forecastDays,
+      });
 
-      const products =
-        data.products.filter(
-          (product) =>
-            product.decision ===
-              "RESTOCK_NOW" ||
-            product.decision ===
-              "RESTOCK_SOON",
-        );
+      const products = data.products.filter(
+        (product) =>
+          product.decision === "RESTOCK_NOW" ||
+          product.decision === "RESTOCK_SOON",
+      );
 
       evidence.push({
-        source:
-          "INVENTORY_RECOMMENDATIONS",
-        label:
-          "PHARMIX replenishment recommendations",
+        source: "INVENTORY_RECOMMENDATIONS",
+        label: "PHARMIX replenishment recommendations",
         data: {
           forecast: data.forecast,
           products,
@@ -143,15 +118,13 @@ export async function buildCopilotContext({
     }
 
     case "DEMAND_TREND": {
-      const data =
-        await getPredictionMonitoring({
-          days: forecastDays,
-        });
+      const data = await getPredictionMonitoring({
+        days: forecastDays,
+      });
 
       evidence.push({
         source: "PREDICTION_MONITORING",
-        label:
-          "PHARMIX demand trend monitoring",
+        label: "PHARMIX demand trend monitoring",
         data,
       });
 
@@ -159,26 +132,21 @@ export async function buildCopilotContext({
     }
 
     case "SEASONAL_DEMAND": {
-      const data =
-        await getDemandIntelligence({
-          latitude,
-          longitude,
-        });
+      const data = await getDemandIntelligence({
+        latitude,
+        longitude,
+      });
 
-      const relevantProducts =
-        data.products.filter(
-          (product) =>
-            product.seasonalRelevance,
-        );
+      const relevantProducts = data.products.filter(
+        (product) => product.seasonalRelevance,
+      );
 
       evidence.push({
         source: "DEMAND_INTELLIGENCE",
-        label:
-          "PHARMIX seasonal demand intelligence",
+        label: "PHARMIX seasonal demand intelligence",
         data: {
           weather: data.weather,
-          seasonalSignals:
-            data.seasonalSignals,
+          seasonalSignals: data.seasonalSignals,
           summary: data.summary,
           products: relevantProducts,
         },
@@ -188,13 +156,13 @@ export async function buildCopilotContext({
     }
 
     case "EXPIRY_RISK": {
-      const batches =
-        await getExpiringBatches(30);
+      const batches = await getExpiringBatches(
+        Math.min(forecastDays, 30),
+      );
 
       evidence.push({
         source: "BATCHES",
-        label:
-          "PHARMIX batch expiry information",
+        label: "PHARMIX batch expiry information",
         data: batches,
       });
 
@@ -202,23 +170,24 @@ export async function buildCopilotContext({
     }
 
     case "NOTIFICATION_SUMMARY": {
-      const data =
-        await getNotifications({
-          userId,
-          isRead: false,
-          page: 1,
-          limit: 20,
-        });
+      const data = await getNotifications({
+        userId,
+        isRead: false,
+        page: 1,
+        limit: 20,
+      });
 
       evidence.push({
         source: "NOTIFICATIONS",
-        label:
-          "PHARMIX unread notifications",
+        label: "PHARMIX unread notifications",
         data,
       });
 
       break;
     }
+
+    case "GREETING":
+      break;
   }
 
   return {
@@ -226,5 +195,6 @@ export async function buildCopilotContext({
     question,
     conversationHistory,
     evidence,
+    timePeriod: normalizedTimePeriod,
   };
 }

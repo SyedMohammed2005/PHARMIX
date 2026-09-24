@@ -1,6 +1,7 @@
 import {
   CopilotIntent,
   CopilotIntentResult,
+  CopilotTimePeriod,
 } from "@/services/copilot/copilot.types";
 
 type IntentRule = {
@@ -23,7 +24,6 @@ const INTENT_RULES: IntentRule[] = [
     reason:
       "The question contains a common conversational greeting.",
   },
-
   {
     intent: "STOCKOUT_RISK",
     keywords: [
@@ -38,7 +38,6 @@ const INTENT_RULES: IntentRule[] = [
     reason:
       "The question contains language related to stock shortages or products running out.",
   },
-
   {
     intent: "REORDER",
     keywords: [
@@ -55,7 +54,6 @@ const INTENT_RULES: IntentRule[] = [
     reason:
       "The question asks about replenishment or what inventory should be ordered.",
   },
-
   {
     intent: "EXPIRY_RISK",
     keywords: [
@@ -70,7 +68,6 @@ const INTENT_RULES: IntentRule[] = [
     reason:
       "The question contains language related to medicine or batch expiry.",
   },
-
   {
     intent: "SEASONAL_DEMAND",
     keywords: [
@@ -86,7 +83,6 @@ const INTENT_RULES: IntentRule[] = [
     reason:
       "The question asks about seasonal or environmental demand signals.",
   },
-
   {
     intent: "DEMAND_TREND",
     keywords: [
@@ -106,7 +102,6 @@ const INTENT_RULES: IntentRule[] = [
     reason:
       "The question asks about demand, sales movement, or a demand trend.",
   },
-
   {
     intent: "NOTIFICATION_SUMMARY",
     keywords: [
@@ -123,7 +118,6 @@ const INTENT_RULES: IntentRule[] = [
     reason:
       "The question asks about PHARMIX notifications or operational alerts.",
   },
-
   {
     intent: "INVENTORY_OVERVIEW",
     keywords: [
@@ -149,11 +143,104 @@ function normalizeQuestion(question: string): string {
     .replace(/\s+/g, " ");
 }
 
+function detectTimePeriod(question: string, fallbackDays: number): CopilotTimePeriod {
+  const normalizedQuestion = normalizeQuestion(question);
+
+  const periodRules: Array<{
+    days: number;
+    label: string;
+    keywords: string[];
+  }> = [
+    {
+      days: 1,
+      label: "today",
+      keywords: [
+        "today",
+        "for today",
+        "today's",
+        "todays",
+      ],
+    },
+    {
+      days: 7,
+      label: "next 7 days",
+      keywords: [
+        "next 7 days",
+        "next seven days",
+        "7 days",
+        "seven days",
+        "this week",
+        "next week",
+        "weekly",
+      ],
+    },
+    {
+      days: 14,
+      label: "next 14 days",
+      keywords: [
+        "next 14 days",
+        "next fourteen days",
+        "14 days",
+        "fourteen days",
+        "next 2 weeks",
+        "next two weeks",
+        "2 weeks",
+        "two weeks",
+        "fortnight",
+        "biweekly",
+      ],
+    },
+    {
+      days: 30,
+      label: "next 30 days",
+      keywords: [
+        "next 30 days",
+        "next thirty days",
+        "30 days",
+        "thirty days",
+        "next month",
+        "this month",
+        "monthly",
+        "one month",
+        "1 month",
+      ],
+    },
+  ];
+
+  for (const rule of periodRules) {
+    const matchedKeyword = rule.keywords.find((keyword) =>
+      normalizedQuestion.includes(keyword),
+    );
+
+    if (matchedKeyword) {
+      return {
+        days: rule.days,
+        label: rule.label,
+        matchedPhrase: matchedKeyword,
+      };
+    }
+  }
+
+return {
+  days: fallbackDays,
+  label:
+    fallbackDays === 1
+      ? "today"
+      : fallbackDays === 7
+        ? "next 7 days"
+        : fallbackDays === 14
+          ? "next 14 days"
+          : fallbackDays === 30
+            ? "next 30 days"
+            : `next ${fallbackDays} days`,
+};
+}
 export function detectCopilotIntent(
   question: string,
+  fallbackDays = 7,
 ): CopilotIntentResult {
-  const normalizedQuestion =
-    normalizeQuestion(question);
+  const normalizedQuestion = normalizeQuestion(question);
+const timePeriod = detectTimePeriod(question, fallbackDays);
 
   if (!normalizedQuestion) {
     return {
@@ -161,6 +248,7 @@ export function detectCopilotIntent(
       confidence: 0,
       reason:
         "No question was provided, so no specific intent could be detected.",
+      timePeriod,
     };
   }
 
@@ -188,7 +276,9 @@ export function detectCopilotIntent(
         intent: rule.intent,
         confidence: 0.95,
         reason:
-          `${rule.reason} Matched phrase: "${matchedKeyword}".`,
+          `${rule.reason} Matched phrase: "${matchedKeyword}". ` +
+          `Time period: ${timePeriod.label}.`,
+        timePeriod,
       };
     }
   }
@@ -198,5 +288,6 @@ export function detectCopilotIntent(
     confidence: 0.4,
     reason:
       "No specific supported intent was detected, so PHARMIX will use the general inventory overview context.",
+    timePeriod,
   };
 }

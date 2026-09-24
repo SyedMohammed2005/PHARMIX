@@ -1,30 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import { getCurrentUser } from "@/lib/authorization";
-
-import {
-  detectCopilotIntent,
-} from "@/services/copilot/copilot-intent.service";
-
-import {
-  buildCopilotContext,
-} from "@/services/copilot/copilot-context.service";
-
-import {
-  generateCopilotResponse,
-} from "@/services/copilot/copilot-reasoning.service";
-
-import {
-  validateCopilotResponse,
-} from "@/services/copilot/copilot-validator.service";
-
-import {
-  validateCopilotEvidenceConsistency,
-} from "@/services/copilot/copilot-evidence-validator.service";
-
-import {
-  CopilotConversationMessage,
-} from "@/services/copilot/copilot.types";
+import { detectCopilotIntent } from "@/services/copilot/copilot-intent.service";
+import { buildCopilotContext } from "@/services/copilot/copilot-context.service";
+import { generateCopilotResponse } from "@/services/copilot/copilot-reasoning.service";
+import { validateCopilotResponse } from "@/services/copilot/copilot-validator.service";
+import { validateCopilotEvidenceConsistency } from "@/services/copilot/copilot-evidence-validator.service";
+import { CopilotConversationMessage } from "@/services/copilot/copilot.types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -89,25 +70,23 @@ export async function POST(request: NextRequest) {
                 "content" in message &&
                 (message.role === "user" ||
                   message.role === "assistant") &&
-                typeof message.content ===
-                  "string",
+                typeof message.content === "string",
             )
             .slice(-10)
         : [];
 
-    const intentResult =
-      detectCopilotIntent(question);
+    const intentResult = detectCopilotIntent(question, days);
 
-    const context =
-      await buildCopilotContext({
-        question,
-        intent: intentResult.intent,
-        latitude,
-        longitude,
-        days,
-        userId: currentUser.userId,
-        conversationHistory,
-      });
+    const context = await buildCopilotContext({
+      question,
+      intent: intentResult.intent,
+      latitude,
+      longitude,
+      days,
+      userId: currentUser.userId,
+      conversationHistory,
+      timePeriod: intentResult.timePeriod,
+    });
 
     const copilotResponse =
       await generateCopilotResponse(

@@ -17,10 +17,17 @@ export type CopilotContextSource =
   | "BATCHES"
   | "NOTIFICATIONS";
 
+export interface CopilotTimePeriod {
+  days: number;
+  label: string;
+  matchedPhrase?: string;
+}
+
 export interface CopilotIntentResult {
   intent: CopilotIntent;
   confidence: number;
   reason: string;
+  timePeriod: CopilotTimePeriod;
 }
 
 export interface CopilotConversationMessage {
@@ -39,6 +46,7 @@ export interface CopilotContext {
   question: string;
   conversationHistory: CopilotConversationMessage[];
   evidence: CopilotEvidence[];
+  timePeriod: CopilotTimePeriod;
 }
 
 export interface CopilotResponse {
@@ -46,4 +54,5 @@ export interface CopilotResponse {
   intent: CopilotIntent;
   confidence: number;
   evidence: CopilotEvidence[];
+  timePeriod: CopilotTimePeriod;
 }

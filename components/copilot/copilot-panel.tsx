@@ -855,11 +855,21 @@ export default function CopilotPanel({
             "Content-Type":
               "application/json",
           },
-          body: JSON.stringify({
-            question:
-              finalQuestion,
-            days: 7,
-          }),
+         body: JSON.stringify({
+  question: finalQuestion,
+  days: 7,
+  conversationHistory: messages
+    .filter(
+      (message) =>
+        message.role === "user" ||
+        message.role === "assistant",
+    )
+    .slice(-10)
+    .map((message) => ({
+      role: message.role,
+      content: message.content,
+    })),
+}),
         },
       );
 

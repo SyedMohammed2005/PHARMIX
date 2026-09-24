@@ -2,15 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/authorization";
 
-import { detectCopilotIntent } from "@/services/copilot/copilot-intent.service";
+import {
+  detectCopilotIntent,
+} from "@/services/copilot/copilot-intent.service";
 
-import { buildCopilotContext } from "@/services/copilot/copilot-context.service";
+import {
+  buildCopilotContext,
+} from "@/services/copilot/copilot-context.service";
 
-import { generateCopilotResponse } from "@/services/copilot/copilot-reasoning.service";
+import {
+  generateCopilotResponse,
+} from "@/services/copilot/copilot-reasoning.service";
 
-import { validateCopilotResponse } from "@/services/copilot/copilot-validator.service";
+import {
+  validateCopilotResponse,
+} from "@/services/copilot/copilot-validator.service";
 
-import { validateCopilotEvidenceConsistency } from "@/services/copilot/copilot-evidence-validator.service";
+import {
+  validateCopilotEvidenceConsistency,
+} from "@/services/copilot/copilot-evidence-validator.service";
+
+import {
+  CopilotConversationMessage,
+} from "@/services/copilot/copilot.types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +36,9 @@ export async function POST(request: NextRequest) {
           success: false,
           message: "Unauthorized",
         },
-        { status: 401 },
+        {
+          status: 401,
+        },
       );
     }
 
@@ -39,7 +55,9 @@ export async function POST(request: NextRequest) {
           success: false,
           message: "Question is required",
         },
-        { status: 400 },
+        {
+          status: 400,
+        },
       );
     }
 
@@ -58,6 +76,25 @@ export async function POST(request: NextRequest) {
         ? body.days
         : 7;
 
+    const conversationHistory: CopilotConversationMessage[] =
+      Array.isArray(body.conversationHistory)
+        ? body.conversationHistory
+            .filter(
+              (
+                message: unknown,
+              ): message is CopilotConversationMessage =>
+                typeof message === "object" &&
+                message !== null &&
+                "role" in message &&
+                "content" in message &&
+                (message.role === "user" ||
+                  message.role === "assistant") &&
+                typeof message.content ===
+                  "string",
+            )
+            .slice(-10)
+        : [];
+
     const intentResult =
       detectCopilotIntent(question);
 
@@ -69,6 +106,7 @@ export async function POST(request: NextRequest) {
         longitude,
         days,
         userId: currentUser.userId,
+        conversationHistory,
       });
 
     const copilotResponse =
@@ -128,7 +166,9 @@ export async function POST(request: NextRequest) {
         message:
           "Unable to process Copilot request",
       },
-      { status: 500 },
+      {
+        status: 500,
+      },
     );
   }
 }

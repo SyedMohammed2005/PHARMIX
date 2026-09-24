@@ -28,6 +28,7 @@ import {
 
 import {
   CopilotContext,
+  CopilotConversationMessage,
   CopilotEvidence,
   CopilotIntent,
 } from "@/services/copilot/copilot.types";
@@ -42,6 +43,8 @@ interface CopilotContextOptions {
   days?: number;
 
   userId: string;
+
+  conversationHistory?: CopilotConversationMessage[];
 }
 
 export async function buildCopilotContext({
@@ -51,6 +54,7 @@ export async function buildCopilotContext({
   longitude,
   days = 7,
   userId,
+  conversationHistory = [],
 }: CopilotContextOptions): Promise<CopilotContext> {
   const evidence: CopilotEvidence[] = [];
 
@@ -220,6 +224,7 @@ export async function buildCopilotContext({
   return {
     intent,
     question,
+    conversationHistory,
     evidence,
   };
 }

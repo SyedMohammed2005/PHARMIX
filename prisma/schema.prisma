@@ -16,8 +16,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  auditLogs     AuditLog[]
-  notifications Notification[]
+  auditLogs             AuditLog[]
+  notifications         Notification[]
+  medicineSubstitutions MedicineSubstitution[]
 }
 
 model AuditLog {
@@ -231,31 +232,77 @@ model Payment {
 }
 
 model Product {
-  id                   String               @id @default(cuid())
-  name                 String
-  genericName          String?
-  brand                String?
-  sku                  String               @unique
-  barcode              String?              @unique
-  purchasePrice        Float
-  sellingPrice         Float
-  mrp                  Float
-  gst                  Float                @default(0)
-  requiresPrescription Boolean              @default(false)
-  categoryId           String
-  supplierId           String
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
-  batches              Batch[]
-  inventory            Inventory?
-  category             Category             @relation(fields: [categoryId], references: [id])
-  supplier             Supplier             @relation(fields: [supplierId], references: [id])
-  purchaseItems        PurchaseItem[]
-  saleItems            SaleItem[]
-  medicineInformation  MedicineInformation?
+  id                         String                 @id @default(cuid())
+  name                       String
+  genericName                String?
+  brand                      String?
+  sku                        String                 @unique
+  barcode                    String?                @unique
+  purchasePrice              Float
+  sellingPrice               Float
+  mrp                        Float
+  gst                        Float                  @default(0)
+  requiresPrescription       Boolean                @default(false)
+  categoryId                 String
+  supplierId                 String
+  createdAt                  DateTime               @default(now())
+  updatedAt                  DateTime               @updatedAt
+  batches                    Batch[]
+  inventory                  Inventory?
+  category                   Category               @relation(fields: [categoryId], references: [id])
+  supplier                   Supplier               @relation(fields: [supplierId], references: [id])
+  purchaseItems              PurchaseItem[]
+  saleItems                  SaleItem[]
+  medicineInformation        MedicineInformation?
+  alternativeFor             MedicineAlternative[]  @relation("AlternativeSource")
+  alternatives               MedicineAlternative[]  @relation("AlternativeTarget")
+  substitutionsAsSource      MedicineSubstitution[] @relation("SubstitutionSource")
+  substitutionsAsAlternative MedicineSubstitution[] @relation("SubstitutionAlternative")
 
   @@index([categoryId])
   @@index([supplierId])
+}
+
+model MedicineSubstitution {
+  id                   String   @id @default(cuid())
+  sourceProductId      String
+  alternativeProductId String
+  pharmacistId         String
+  reason               String?
+  status               String   @default("CONFIRMED")
+  confirmedAt          DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  sourceProduct Product @relation("SubstitutionSource", fields: [sourceProductId], references: [id], onDelete: Restrict)
+
+  alternativeProduct Product @relation("SubstitutionAlternative", fields: [alternativeProductId], references: [id], onDelete: Restrict)
+
+  pharmacist User @relation(fields: [pharmacistId], references: [id], onDelete: Restrict)
+
+  @@index([sourceProductId])
+  @@index([alternativeProductId])
+  @@index([pharmacistId])
+  @@index([status])
+}
+
+model MedicineAlternative {
+  id                   String   @id @default(cuid())
+  sourceProductId      String
+  alternativeProductId String
+  reason               String?
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  sourceProduct Product @relation("AlternativeSource", fields: [sourceProductId], references: [id], onDelete: Cascade)
+
+  alternativeProduct Product @relation("AlternativeTarget", fields: [alternativeProductId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceProductId, alternativeProductId])
+  @@index([sourceProductId])
+  @@index([alternativeProductId])
+  @@index([isActive])
 }
 
 model MedicineInformation {

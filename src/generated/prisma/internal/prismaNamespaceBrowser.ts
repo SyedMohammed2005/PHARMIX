@@ -64,6 +64,8 @@ export const ModelName = {
   ReturnItem: 'ReturnItem',
   Payment: 'Payment',
   Product: 'Product',
+  MedicineSubstitution: 'MedicineSubstitution',
+  MedicineAlternative: 'MedicineAlternative',
   MedicineInformation: 'MedicineInformation',
   MedicineReference: 'MedicineReference',
   Batch: 'Batch',
@@ -279,6 +281,34 @@ export const ProductScalarFieldEnum = {
 } as const
 
 export type ProductScalarFieldEnum = (typeof ProductScalarFieldEnum)[keyof typeof ProductScalarFieldEnum]
+
+
+export const MedicineSubstitutionScalarFieldEnum = {
+  id: 'id',
+  sourceProductId: 'sourceProductId',
+  alternativeProductId: 'alternativeProductId',
+  pharmacistId: 'pharmacistId',
+  reason: 'reason',
+  status: 'status',
+  confirmedAt: 'confirmedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MedicineSubstitutionScalarFieldEnum = (typeof MedicineSubstitutionScalarFieldEnum)[keyof typeof MedicineSubstitutionScalarFieldEnum]
+
+
+export const MedicineAlternativeScalarFieldEnum = {
+  id: 'id',
+  sourceProductId: 'sourceProductId',
+  alternativeProductId: 'alternativeProductId',
+  reason: 'reason',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MedicineAlternativeScalarFieldEnum = (typeof MedicineAlternativeScalarFieldEnum)[keyof typeof MedicineAlternativeScalarFieldEnum]
 
 
 export const MedicineInformationScalarFieldEnum = {

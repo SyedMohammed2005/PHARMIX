@@ -315,6 +315,10 @@ export type ProductWhereInput = {
   purchaseItems?: Prisma.PurchaseItemListRelationFilter
   saleItems?: Prisma.SaleItemListRelationFilter
   medicineInformation?: Prisma.XOR<Prisma.MedicineInformationNullableScalarRelationFilter, Prisma.MedicineInformationWhereInput> | null
+  alternativeFor?: Prisma.MedicineAlternativeListRelationFilter
+  alternatives?: Prisma.MedicineAlternativeListRelationFilter
+  substitutionsAsSource?: Prisma.MedicineSubstitutionListRelationFilter
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionListRelationFilter
 }
 
 export type ProductOrderByWithRelationInput = {
@@ -340,6 +344,10 @@ export type ProductOrderByWithRelationInput = {
   purchaseItems?: Prisma.PurchaseItemOrderByRelationAggregateInput
   saleItems?: Prisma.SaleItemOrderByRelationAggregateInput
   medicineInformation?: Prisma.MedicineInformationOrderByWithRelationInput
+  alternativeFor?: Prisma.MedicineAlternativeOrderByRelationAggregateInput
+  alternatives?: Prisma.MedicineAlternativeOrderByRelationAggregateInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionOrderByRelationAggregateInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionOrderByRelationAggregateInput
 }
 
 export type ProductWhereUniqueInput = Prisma.AtLeast<{
@@ -368,6 +376,10 @@ export type ProductWhereUniqueInput = Prisma.AtLeast<{
   purchaseItems?: Prisma.PurchaseItemListRelationFilter
   saleItems?: Prisma.SaleItemListRelationFilter
   medicineInformation?: Prisma.XOR<Prisma.MedicineInformationNullableScalarRelationFilter, Prisma.MedicineInformationWhereInput> | null
+  alternativeFor?: Prisma.MedicineAlternativeListRelationFilter
+  alternatives?: Prisma.MedicineAlternativeListRelationFilter
+  substitutionsAsSource?: Prisma.MedicineSubstitutionListRelationFilter
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionListRelationFilter
 }, "id" | "sku" | "barcode">
 
 export type ProductOrderByWithAggregationInput = {
@@ -435,6 +447,10 @@ export type ProductCreateInput = {
   purchaseItems?: Prisma.PurchaseItemCreateNestedManyWithoutProductInput
   saleItems?: Prisma.SaleItemCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductUncheckedCreateInput = {
@@ -458,6 +474,10 @@ export type ProductUncheckedCreateInput = {
   purchaseItems?: Prisma.PurchaseItemUncheckedCreateNestedManyWithoutProductInput
   saleItems?: Prisma.SaleItemUncheckedCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationUncheckedCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductUpdateInput = {
@@ -481,6 +501,10 @@ export type ProductUpdateInput = {
   purchaseItems?: Prisma.PurchaseItemUpdateManyWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductUncheckedUpdateInput = {
@@ -504,6 +528,10 @@ export type ProductUncheckedUpdateInput = {
   purchaseItems?: Prisma.PurchaseItemUncheckedUpdateManyWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUncheckedUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUncheckedUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductCreateManyInput = {
@@ -753,6 +781,62 @@ export type ProductUpdateOneRequiredWithoutSaleItemsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutSaleItemsInput, Prisma.ProductUpdateWithoutSaleItemsInput>, Prisma.ProductUncheckedUpdateWithoutSaleItemsInput>
 }
 
+export type ProductCreateNestedOneWithoutSubstitutionsAsSourceInput = {
+  create?: Prisma.XOR<Prisma.ProductCreateWithoutSubstitutionsAsSourceInput, Prisma.ProductUncheckedCreateWithoutSubstitutionsAsSourceInput>
+  connectOrCreate?: Prisma.ProductCreateOrConnectWithoutSubstitutionsAsSourceInput
+  connect?: Prisma.ProductWhereUniqueInput
+}
+
+export type ProductCreateNestedOneWithoutSubstitutionsAsAlternativeInput = {
+  create?: Prisma.XOR<Prisma.ProductCreateWithoutSubstitutionsAsAlternativeInput, Prisma.ProductUncheckedCreateWithoutSubstitutionsAsAlternativeInput>
+  connectOrCreate?: Prisma.ProductCreateOrConnectWithoutSubstitutionsAsAlternativeInput
+  connect?: Prisma.ProductWhereUniqueInput
+}
+
+export type ProductUpdateOneRequiredWithoutSubstitutionsAsSourceNestedInput = {
+  create?: Prisma.XOR<Prisma.ProductCreateWithoutSubstitutionsAsSourceInput, Prisma.ProductUncheckedCreateWithoutSubstitutionsAsSourceInput>
+  connectOrCreate?: Prisma.ProductCreateOrConnectWithoutSubstitutionsAsSourceInput
+  upsert?: Prisma.ProductUpsertWithoutSubstitutionsAsSourceInput
+  connect?: Prisma.ProductWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutSubstitutionsAsSourceInput, Prisma.ProductUpdateWithoutSubstitutionsAsSourceInput>, Prisma.ProductUncheckedUpdateWithoutSubstitutionsAsSourceInput>
+}
+
+export type ProductUpdateOneRequiredWithoutSubstitutionsAsAlternativeNestedInput = {
+  create?: Prisma.XOR<Prisma.ProductCreateWithoutSubstitutionsAsAlternativeInput, Prisma.ProductUncheckedCreateWithoutSubstitutionsAsAlternativeInput>
+  connectOrCreate?: Prisma.ProductCreateOrConnectWithoutSubstitutionsAsAlternativeInput
+  upsert?: Prisma.ProductUpsertWithoutSubstitutionsAsAlternativeInput
+  connect?: Prisma.ProductWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutSubstitutionsAsAlternativeInput, Prisma.ProductUpdateWithoutSubstitutionsAsAlternativeInput>, Prisma.ProductUncheckedUpdateWithoutSubstitutionsAsAlternativeInput>
+}
+
+export type ProductCreateNestedOneWithoutAlternativeForInput = {
+  create?: Prisma.XOR<Prisma.ProductCreateWithoutAlternativeForInput, Prisma.ProductUncheckedCreateWithoutAlternativeForInput>
+  connectOrCreate?: Prisma.ProductCreateOrConnectWithoutAlternativeForInput
+  connect?: Prisma.ProductWhereUniqueInput
+}
+
+export type ProductCreateNestedOneWithoutAlternativesInput = {
+  create?: Prisma.XOR<Prisma.ProductCreateWithoutAlternativesInput, Prisma.ProductUncheckedCreateWithoutAlternativesInput>
+  connectOrCreate?: Prisma.ProductCreateOrConnectWithoutAlternativesInput
+  connect?: Prisma.ProductWhereUniqueInput
+}
+
+export type ProductUpdateOneRequiredWithoutAlternativeForNestedInput = {
+  create?: Prisma.XOR<Prisma.ProductCreateWithoutAlternativeForInput, Prisma.ProductUncheckedCreateWithoutAlternativeForInput>
+  connectOrCreate?: Prisma.ProductCreateOrConnectWithoutAlternativeForInput
+  upsert?: Prisma.ProductUpsertWithoutAlternativeForInput
+  connect?: Prisma.ProductWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutAlternativeForInput, Prisma.ProductUpdateWithoutAlternativeForInput>, Prisma.ProductUncheckedUpdateWithoutAlternativeForInput>
+}
+
+export type ProductUpdateOneRequiredWithoutAlternativesNestedInput = {
+  create?: Prisma.XOR<Prisma.ProductCreateWithoutAlternativesInput, Prisma.ProductUncheckedCreateWithoutAlternativesInput>
+  connectOrCreate?: Prisma.ProductCreateOrConnectWithoutAlternativesInput
+  upsert?: Prisma.ProductUpsertWithoutAlternativesInput
+  connect?: Prisma.ProductWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutAlternativesInput, Prisma.ProductUpdateWithoutAlternativesInput>, Prisma.ProductUncheckedUpdateWithoutAlternativesInput>
+}
+
 export type ProductCreateNestedOneWithoutMedicineInformationInput = {
   create?: Prisma.XOR<Prisma.ProductCreateWithoutMedicineInformationInput, Prisma.ProductUncheckedCreateWithoutMedicineInformationInput>
   connectOrCreate?: Prisma.ProductCreateOrConnectWithoutMedicineInformationInput
@@ -815,6 +899,10 @@ export type ProductCreateWithoutInventoryInput = {
   purchaseItems?: Prisma.PurchaseItemCreateNestedManyWithoutProductInput
   saleItems?: Prisma.SaleItemCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductUncheckedCreateWithoutInventoryInput = {
@@ -837,6 +925,10 @@ export type ProductUncheckedCreateWithoutInventoryInput = {
   purchaseItems?: Prisma.PurchaseItemUncheckedCreateNestedManyWithoutProductInput
   saleItems?: Prisma.SaleItemUncheckedCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationUncheckedCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductCreateOrConnectWithoutInventoryInput = {
@@ -875,6 +967,10 @@ export type ProductUpdateWithoutInventoryInput = {
   purchaseItems?: Prisma.PurchaseItemUpdateManyWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductUncheckedUpdateWithoutInventoryInput = {
@@ -897,6 +993,10 @@ export type ProductUncheckedUpdateWithoutInventoryInput = {
   purchaseItems?: Prisma.PurchaseItemUncheckedUpdateManyWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUncheckedUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUncheckedUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductCreateWithoutCategoryInput = {
@@ -919,6 +1019,10 @@ export type ProductCreateWithoutCategoryInput = {
   purchaseItems?: Prisma.PurchaseItemCreateNestedManyWithoutProductInput
   saleItems?: Prisma.SaleItemCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductUncheckedCreateWithoutCategoryInput = {
@@ -941,6 +1045,10 @@ export type ProductUncheckedCreateWithoutCategoryInput = {
   purchaseItems?: Prisma.PurchaseItemUncheckedCreateNestedManyWithoutProductInput
   saleItems?: Prisma.SaleItemUncheckedCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationUncheckedCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductCreateOrConnectWithoutCategoryInput = {
@@ -1010,6 +1118,10 @@ export type ProductCreateWithoutSupplierInput = {
   purchaseItems?: Prisma.PurchaseItemCreateNestedManyWithoutProductInput
   saleItems?: Prisma.SaleItemCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductUncheckedCreateWithoutSupplierInput = {
@@ -1032,6 +1144,10 @@ export type ProductUncheckedCreateWithoutSupplierInput = {
   purchaseItems?: Prisma.PurchaseItemUncheckedCreateNestedManyWithoutProductInput
   saleItems?: Prisma.SaleItemUncheckedCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationUncheckedCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductCreateOrConnectWithoutSupplierInput = {
@@ -1080,6 +1196,10 @@ export type ProductCreateWithoutSaleItemsInput = {
   supplier: Prisma.SupplierCreateNestedOneWithoutProductsInput
   purchaseItems?: Prisma.PurchaseItemCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductUncheckedCreateWithoutSaleItemsInput = {
@@ -1102,6 +1222,10 @@ export type ProductUncheckedCreateWithoutSaleItemsInput = {
   inventory?: Prisma.InventoryUncheckedCreateNestedOneWithoutProductInput
   purchaseItems?: Prisma.PurchaseItemUncheckedCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationUncheckedCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductCreateOrConnectWithoutSaleItemsInput = {
@@ -1140,6 +1264,10 @@ export type ProductUpdateWithoutSaleItemsInput = {
   supplier?: Prisma.SupplierUpdateOneRequiredWithoutProductsNestedInput
   purchaseItems?: Prisma.PurchaseItemUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductUncheckedUpdateWithoutSaleItemsInput = {
@@ -1162,6 +1290,490 @@ export type ProductUncheckedUpdateWithoutSaleItemsInput = {
   inventory?: Prisma.InventoryUncheckedUpdateOneWithoutProductNestedInput
   purchaseItems?: Prisma.PurchaseItemUncheckedUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUncheckedUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutAlternativeProductNestedInput
+}
+
+export type ProductCreateWithoutSubstitutionsAsSourceInput = {
+  id?: string
+  name: string
+  genericName?: string | null
+  brand?: string | null
+  sku: string
+  barcode?: string | null
+  purchasePrice: number
+  sellingPrice: number
+  mrp: number
+  gst?: number
+  requiresPrescription?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batches?: Prisma.BatchCreateNestedManyWithoutProductInput
+  inventory?: Prisma.InventoryCreateNestedOneWithoutProductInput
+  category: Prisma.CategoryCreateNestedOneWithoutProductsInput
+  supplier: Prisma.SupplierCreateNestedOneWithoutProductsInput
+  purchaseItems?: Prisma.PurchaseItemCreateNestedManyWithoutProductInput
+  saleItems?: Prisma.SaleItemCreateNestedManyWithoutProductInput
+  medicineInformation?: Prisma.MedicineInformationCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionCreateNestedManyWithoutAlternativeProductInput
+}
+
+export type ProductUncheckedCreateWithoutSubstitutionsAsSourceInput = {
+  id?: string
+  name: string
+  genericName?: string | null
+  brand?: string | null
+  sku: string
+  barcode?: string | null
+  purchasePrice: number
+  sellingPrice: number
+  mrp: number
+  gst?: number
+  requiresPrescription?: boolean
+  categoryId: string
+  supplierId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batches?: Prisma.BatchUncheckedCreateNestedManyWithoutProductInput
+  inventory?: Prisma.InventoryUncheckedCreateNestedOneWithoutProductInput
+  purchaseItems?: Prisma.PurchaseItemUncheckedCreateNestedManyWithoutProductInput
+  saleItems?: Prisma.SaleItemUncheckedCreateNestedManyWithoutProductInput
+  medicineInformation?: Prisma.MedicineInformationUncheckedCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutAlternativeProductInput
+}
+
+export type ProductCreateOrConnectWithoutSubstitutionsAsSourceInput = {
+  where: Prisma.ProductWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProductCreateWithoutSubstitutionsAsSourceInput, Prisma.ProductUncheckedCreateWithoutSubstitutionsAsSourceInput>
+}
+
+export type ProductCreateWithoutSubstitutionsAsAlternativeInput = {
+  id?: string
+  name: string
+  genericName?: string | null
+  brand?: string | null
+  sku: string
+  barcode?: string | null
+  purchasePrice: number
+  sellingPrice: number
+  mrp: number
+  gst?: number
+  requiresPrescription?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batches?: Prisma.BatchCreateNestedManyWithoutProductInput
+  inventory?: Prisma.InventoryCreateNestedOneWithoutProductInput
+  category: Prisma.CategoryCreateNestedOneWithoutProductsInput
+  supplier: Prisma.SupplierCreateNestedOneWithoutProductsInput
+  purchaseItems?: Prisma.PurchaseItemCreateNestedManyWithoutProductInput
+  saleItems?: Prisma.SaleItemCreateNestedManyWithoutProductInput
+  medicineInformation?: Prisma.MedicineInformationCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionCreateNestedManyWithoutSourceProductInput
+}
+
+export type ProductUncheckedCreateWithoutSubstitutionsAsAlternativeInput = {
+  id?: string
+  name: string
+  genericName?: string | null
+  brand?: string | null
+  sku: string
+  barcode?: string | null
+  purchasePrice: number
+  sellingPrice: number
+  mrp: number
+  gst?: number
+  requiresPrescription?: boolean
+  categoryId: string
+  supplierId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batches?: Prisma.BatchUncheckedCreateNestedManyWithoutProductInput
+  inventory?: Prisma.InventoryUncheckedCreateNestedOneWithoutProductInput
+  purchaseItems?: Prisma.PurchaseItemUncheckedCreateNestedManyWithoutProductInput
+  saleItems?: Prisma.SaleItemUncheckedCreateNestedManyWithoutProductInput
+  medicineInformation?: Prisma.MedicineInformationUncheckedCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutSourceProductInput
+}
+
+export type ProductCreateOrConnectWithoutSubstitutionsAsAlternativeInput = {
+  where: Prisma.ProductWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProductCreateWithoutSubstitutionsAsAlternativeInput, Prisma.ProductUncheckedCreateWithoutSubstitutionsAsAlternativeInput>
+}
+
+export type ProductUpsertWithoutSubstitutionsAsSourceInput = {
+  update: Prisma.XOR<Prisma.ProductUpdateWithoutSubstitutionsAsSourceInput, Prisma.ProductUncheckedUpdateWithoutSubstitutionsAsSourceInput>
+  create: Prisma.XOR<Prisma.ProductCreateWithoutSubstitutionsAsSourceInput, Prisma.ProductUncheckedCreateWithoutSubstitutionsAsSourceInput>
+  where?: Prisma.ProductWhereInput
+}
+
+export type ProductUpdateToOneWithWhereWithoutSubstitutionsAsSourceInput = {
+  where?: Prisma.ProductWhereInput
+  data: Prisma.XOR<Prisma.ProductUpdateWithoutSubstitutionsAsSourceInput, Prisma.ProductUncheckedUpdateWithoutSubstitutionsAsSourceInput>
+}
+
+export type ProductUpdateWithoutSubstitutionsAsSourceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  genericName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brand?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sku?: Prisma.StringFieldUpdateOperationsInput | string
+  barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  purchasePrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  sellingPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  mrp?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  requiresPrescription?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batches?: Prisma.BatchUpdateManyWithoutProductNestedInput
+  inventory?: Prisma.InventoryUpdateOneWithoutProductNestedInput
+  category?: Prisma.CategoryUpdateOneRequiredWithoutProductsNestedInput
+  supplier?: Prisma.SupplierUpdateOneRequiredWithoutProductsNestedInput
+  purchaseItems?: Prisma.PurchaseItemUpdateManyWithoutProductNestedInput
+  saleItems?: Prisma.SaleItemUpdateManyWithoutProductNestedInput
+  medicineInformation?: Prisma.MedicineInformationUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUpdateManyWithoutAlternativeProductNestedInput
+}
+
+export type ProductUncheckedUpdateWithoutSubstitutionsAsSourceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  genericName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brand?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sku?: Prisma.StringFieldUpdateOperationsInput | string
+  barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  purchasePrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  sellingPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  mrp?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  requiresPrescription?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  supplierId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batches?: Prisma.BatchUncheckedUpdateManyWithoutProductNestedInput
+  inventory?: Prisma.InventoryUncheckedUpdateOneWithoutProductNestedInput
+  purchaseItems?: Prisma.PurchaseItemUncheckedUpdateManyWithoutProductNestedInput
+  saleItems?: Prisma.SaleItemUncheckedUpdateManyWithoutProductNestedInput
+  medicineInformation?: Prisma.MedicineInformationUncheckedUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutAlternativeProductNestedInput
+}
+
+export type ProductUpsertWithoutSubstitutionsAsAlternativeInput = {
+  update: Prisma.XOR<Prisma.ProductUpdateWithoutSubstitutionsAsAlternativeInput, Prisma.ProductUncheckedUpdateWithoutSubstitutionsAsAlternativeInput>
+  create: Prisma.XOR<Prisma.ProductCreateWithoutSubstitutionsAsAlternativeInput, Prisma.ProductUncheckedCreateWithoutSubstitutionsAsAlternativeInput>
+  where?: Prisma.ProductWhereInput
+}
+
+export type ProductUpdateToOneWithWhereWithoutSubstitutionsAsAlternativeInput = {
+  where?: Prisma.ProductWhereInput
+  data: Prisma.XOR<Prisma.ProductUpdateWithoutSubstitutionsAsAlternativeInput, Prisma.ProductUncheckedUpdateWithoutSubstitutionsAsAlternativeInput>
+}
+
+export type ProductUpdateWithoutSubstitutionsAsAlternativeInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  genericName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brand?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sku?: Prisma.StringFieldUpdateOperationsInput | string
+  barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  purchasePrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  sellingPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  mrp?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  requiresPrescription?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batches?: Prisma.BatchUpdateManyWithoutProductNestedInput
+  inventory?: Prisma.InventoryUpdateOneWithoutProductNestedInput
+  category?: Prisma.CategoryUpdateOneRequiredWithoutProductsNestedInput
+  supplier?: Prisma.SupplierUpdateOneRequiredWithoutProductsNestedInput
+  purchaseItems?: Prisma.PurchaseItemUpdateManyWithoutProductNestedInput
+  saleItems?: Prisma.SaleItemUpdateManyWithoutProductNestedInput
+  medicineInformation?: Prisma.MedicineInformationUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUpdateManyWithoutSourceProductNestedInput
+}
+
+export type ProductUncheckedUpdateWithoutSubstitutionsAsAlternativeInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  genericName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brand?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sku?: Prisma.StringFieldUpdateOperationsInput | string
+  barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  purchasePrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  sellingPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  mrp?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  requiresPrescription?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  supplierId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batches?: Prisma.BatchUncheckedUpdateManyWithoutProductNestedInput
+  inventory?: Prisma.InventoryUncheckedUpdateOneWithoutProductNestedInput
+  purchaseItems?: Prisma.PurchaseItemUncheckedUpdateManyWithoutProductNestedInput
+  saleItems?: Prisma.SaleItemUncheckedUpdateManyWithoutProductNestedInput
+  medicineInformation?: Prisma.MedicineInformationUncheckedUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutSourceProductNestedInput
+}
+
+export type ProductCreateWithoutAlternativeForInput = {
+  id?: string
+  name: string
+  genericName?: string | null
+  brand?: string | null
+  sku: string
+  barcode?: string | null
+  purchasePrice: number
+  sellingPrice: number
+  mrp: number
+  gst?: number
+  requiresPrescription?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batches?: Prisma.BatchCreateNestedManyWithoutProductInput
+  inventory?: Prisma.InventoryCreateNestedOneWithoutProductInput
+  category: Prisma.CategoryCreateNestedOneWithoutProductsInput
+  supplier: Prisma.SupplierCreateNestedOneWithoutProductsInput
+  purchaseItems?: Prisma.PurchaseItemCreateNestedManyWithoutProductInput
+  saleItems?: Prisma.SaleItemCreateNestedManyWithoutProductInput
+  medicineInformation?: Prisma.MedicineInformationCreateNestedOneWithoutProductInput
+  alternatives?: Prisma.MedicineAlternativeCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionCreateNestedManyWithoutAlternativeProductInput
+}
+
+export type ProductUncheckedCreateWithoutAlternativeForInput = {
+  id?: string
+  name: string
+  genericName?: string | null
+  brand?: string | null
+  sku: string
+  barcode?: string | null
+  purchasePrice: number
+  sellingPrice: number
+  mrp: number
+  gst?: number
+  requiresPrescription?: boolean
+  categoryId: string
+  supplierId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batches?: Prisma.BatchUncheckedCreateNestedManyWithoutProductInput
+  inventory?: Prisma.InventoryUncheckedCreateNestedOneWithoutProductInput
+  purchaseItems?: Prisma.PurchaseItemUncheckedCreateNestedManyWithoutProductInput
+  saleItems?: Prisma.SaleItemUncheckedCreateNestedManyWithoutProductInput
+  medicineInformation?: Prisma.MedicineInformationUncheckedCreateNestedOneWithoutProductInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutAlternativeProductInput
+}
+
+export type ProductCreateOrConnectWithoutAlternativeForInput = {
+  where: Prisma.ProductWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProductCreateWithoutAlternativeForInput, Prisma.ProductUncheckedCreateWithoutAlternativeForInput>
+}
+
+export type ProductCreateWithoutAlternativesInput = {
+  id?: string
+  name: string
+  genericName?: string | null
+  brand?: string | null
+  sku: string
+  barcode?: string | null
+  purchasePrice: number
+  sellingPrice: number
+  mrp: number
+  gst?: number
+  requiresPrescription?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batches?: Prisma.BatchCreateNestedManyWithoutProductInput
+  inventory?: Prisma.InventoryCreateNestedOneWithoutProductInput
+  category: Prisma.CategoryCreateNestedOneWithoutProductsInput
+  supplier: Prisma.SupplierCreateNestedOneWithoutProductsInput
+  purchaseItems?: Prisma.PurchaseItemCreateNestedManyWithoutProductInput
+  saleItems?: Prisma.SaleItemCreateNestedManyWithoutProductInput
+  medicineInformation?: Prisma.MedicineInformationCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeCreateNestedManyWithoutSourceProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionCreateNestedManyWithoutAlternativeProductInput
+}
+
+export type ProductUncheckedCreateWithoutAlternativesInput = {
+  id?: string
+  name: string
+  genericName?: string | null
+  brand?: string | null
+  sku: string
+  barcode?: string | null
+  purchasePrice: number
+  sellingPrice: number
+  mrp: number
+  gst?: number
+  requiresPrescription?: boolean
+  categoryId: string
+  supplierId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  batches?: Prisma.BatchUncheckedCreateNestedManyWithoutProductInput
+  inventory?: Prisma.InventoryUncheckedCreateNestedOneWithoutProductInput
+  purchaseItems?: Prisma.PurchaseItemUncheckedCreateNestedManyWithoutProductInput
+  saleItems?: Prisma.SaleItemUncheckedCreateNestedManyWithoutProductInput
+  medicineInformation?: Prisma.MedicineInformationUncheckedCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutSourceProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutAlternativeProductInput
+}
+
+export type ProductCreateOrConnectWithoutAlternativesInput = {
+  where: Prisma.ProductWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProductCreateWithoutAlternativesInput, Prisma.ProductUncheckedCreateWithoutAlternativesInput>
+}
+
+export type ProductUpsertWithoutAlternativeForInput = {
+  update: Prisma.XOR<Prisma.ProductUpdateWithoutAlternativeForInput, Prisma.ProductUncheckedUpdateWithoutAlternativeForInput>
+  create: Prisma.XOR<Prisma.ProductCreateWithoutAlternativeForInput, Prisma.ProductUncheckedCreateWithoutAlternativeForInput>
+  where?: Prisma.ProductWhereInput
+}
+
+export type ProductUpdateToOneWithWhereWithoutAlternativeForInput = {
+  where?: Prisma.ProductWhereInput
+  data: Prisma.XOR<Prisma.ProductUpdateWithoutAlternativeForInput, Prisma.ProductUncheckedUpdateWithoutAlternativeForInput>
+}
+
+export type ProductUpdateWithoutAlternativeForInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  genericName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brand?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sku?: Prisma.StringFieldUpdateOperationsInput | string
+  barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  purchasePrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  sellingPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  mrp?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  requiresPrescription?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batches?: Prisma.BatchUpdateManyWithoutProductNestedInput
+  inventory?: Prisma.InventoryUpdateOneWithoutProductNestedInput
+  category?: Prisma.CategoryUpdateOneRequiredWithoutProductsNestedInput
+  supplier?: Prisma.SupplierUpdateOneRequiredWithoutProductsNestedInput
+  purchaseItems?: Prisma.PurchaseItemUpdateManyWithoutProductNestedInput
+  saleItems?: Prisma.SaleItemUpdateManyWithoutProductNestedInput
+  medicineInformation?: Prisma.MedicineInformationUpdateOneWithoutProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUpdateManyWithoutAlternativeProductNestedInput
+}
+
+export type ProductUncheckedUpdateWithoutAlternativeForInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  genericName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brand?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sku?: Prisma.StringFieldUpdateOperationsInput | string
+  barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  purchasePrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  sellingPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  mrp?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  requiresPrescription?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  supplierId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batches?: Prisma.BatchUncheckedUpdateManyWithoutProductNestedInput
+  inventory?: Prisma.InventoryUncheckedUpdateOneWithoutProductNestedInput
+  purchaseItems?: Prisma.PurchaseItemUncheckedUpdateManyWithoutProductNestedInput
+  saleItems?: Prisma.SaleItemUncheckedUpdateManyWithoutProductNestedInput
+  medicineInformation?: Prisma.MedicineInformationUncheckedUpdateOneWithoutProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutAlternativeProductNestedInput
+}
+
+export type ProductUpsertWithoutAlternativesInput = {
+  update: Prisma.XOR<Prisma.ProductUpdateWithoutAlternativesInput, Prisma.ProductUncheckedUpdateWithoutAlternativesInput>
+  create: Prisma.XOR<Prisma.ProductCreateWithoutAlternativesInput, Prisma.ProductUncheckedCreateWithoutAlternativesInput>
+  where?: Prisma.ProductWhereInput
+}
+
+export type ProductUpdateToOneWithWhereWithoutAlternativesInput = {
+  where?: Prisma.ProductWhereInput
+  data: Prisma.XOR<Prisma.ProductUpdateWithoutAlternativesInput, Prisma.ProductUncheckedUpdateWithoutAlternativesInput>
+}
+
+export type ProductUpdateWithoutAlternativesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  genericName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brand?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sku?: Prisma.StringFieldUpdateOperationsInput | string
+  barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  purchasePrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  sellingPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  mrp?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  requiresPrescription?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batches?: Prisma.BatchUpdateManyWithoutProductNestedInput
+  inventory?: Prisma.InventoryUpdateOneWithoutProductNestedInput
+  category?: Prisma.CategoryUpdateOneRequiredWithoutProductsNestedInput
+  supplier?: Prisma.SupplierUpdateOneRequiredWithoutProductsNestedInput
+  purchaseItems?: Prisma.PurchaseItemUpdateManyWithoutProductNestedInput
+  saleItems?: Prisma.SaleItemUpdateManyWithoutProductNestedInput
+  medicineInformation?: Prisma.MedicineInformationUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUpdateManyWithoutAlternativeProductNestedInput
+}
+
+export type ProductUncheckedUpdateWithoutAlternativesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  genericName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brand?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sku?: Prisma.StringFieldUpdateOperationsInput | string
+  barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  purchasePrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  sellingPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  mrp?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  requiresPrescription?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  supplierId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batches?: Prisma.BatchUncheckedUpdateManyWithoutProductNestedInput
+  inventory?: Prisma.InventoryUncheckedUpdateOneWithoutProductNestedInput
+  purchaseItems?: Prisma.PurchaseItemUncheckedUpdateManyWithoutProductNestedInput
+  saleItems?: Prisma.SaleItemUncheckedUpdateManyWithoutProductNestedInput
+  medicineInformation?: Prisma.MedicineInformationUncheckedUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductCreateWithoutMedicineInformationInput = {
@@ -1184,6 +1796,10 @@ export type ProductCreateWithoutMedicineInformationInput = {
   supplier: Prisma.SupplierCreateNestedOneWithoutProductsInput
   purchaseItems?: Prisma.PurchaseItemCreateNestedManyWithoutProductInput
   saleItems?: Prisma.SaleItemCreateNestedManyWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductUncheckedCreateWithoutMedicineInformationInput = {
@@ -1206,6 +1822,10 @@ export type ProductUncheckedCreateWithoutMedicineInformationInput = {
   inventory?: Prisma.InventoryUncheckedCreateNestedOneWithoutProductInput
   purchaseItems?: Prisma.PurchaseItemUncheckedCreateNestedManyWithoutProductInput
   saleItems?: Prisma.SaleItemUncheckedCreateNestedManyWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductCreateOrConnectWithoutMedicineInformationInput = {
@@ -1244,6 +1864,10 @@ export type ProductUpdateWithoutMedicineInformationInput = {
   supplier?: Prisma.SupplierUpdateOneRequiredWithoutProductsNestedInput
   purchaseItems?: Prisma.PurchaseItemUpdateManyWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUpdateManyWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductUncheckedUpdateWithoutMedicineInformationInput = {
@@ -1266,6 +1890,10 @@ export type ProductUncheckedUpdateWithoutMedicineInformationInput = {
   inventory?: Prisma.InventoryUncheckedUpdateOneWithoutProductNestedInput
   purchaseItems?: Prisma.PurchaseItemUncheckedUpdateManyWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUncheckedUpdateManyWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductCreateWithoutBatchesInput = {
@@ -1288,6 +1916,10 @@ export type ProductCreateWithoutBatchesInput = {
   purchaseItems?: Prisma.PurchaseItemCreateNestedManyWithoutProductInput
   saleItems?: Prisma.SaleItemCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductUncheckedCreateWithoutBatchesInput = {
@@ -1310,6 +1942,10 @@ export type ProductUncheckedCreateWithoutBatchesInput = {
   purchaseItems?: Prisma.PurchaseItemUncheckedCreateNestedManyWithoutProductInput
   saleItems?: Prisma.SaleItemUncheckedCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationUncheckedCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductCreateOrConnectWithoutBatchesInput = {
@@ -1348,6 +1984,10 @@ export type ProductUpdateWithoutBatchesInput = {
   purchaseItems?: Prisma.PurchaseItemUpdateManyWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductUncheckedUpdateWithoutBatchesInput = {
@@ -1370,6 +2010,10 @@ export type ProductUncheckedUpdateWithoutBatchesInput = {
   purchaseItems?: Prisma.PurchaseItemUncheckedUpdateManyWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUncheckedUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUncheckedUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductCreateWithoutPurchaseItemsInput = {
@@ -1392,6 +2036,10 @@ export type ProductCreateWithoutPurchaseItemsInput = {
   supplier: Prisma.SupplierCreateNestedOneWithoutProductsInput
   saleItems?: Prisma.SaleItemCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductUncheckedCreateWithoutPurchaseItemsInput = {
@@ -1414,6 +2062,10 @@ export type ProductUncheckedCreateWithoutPurchaseItemsInput = {
   inventory?: Prisma.InventoryUncheckedCreateNestedOneWithoutProductInput
   saleItems?: Prisma.SaleItemUncheckedCreateNestedManyWithoutProductInput
   medicineInformation?: Prisma.MedicineInformationUncheckedCreateNestedOneWithoutProductInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutSourceProductInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedCreateNestedManyWithoutAlternativeProductInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutSourceProductInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedCreateNestedManyWithoutAlternativeProductInput
 }
 
 export type ProductCreateOrConnectWithoutPurchaseItemsInput = {
@@ -1452,6 +2104,10 @@ export type ProductUpdateWithoutPurchaseItemsInput = {
   supplier?: Prisma.SupplierUpdateOneRequiredWithoutProductsNestedInput
   saleItems?: Prisma.SaleItemUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductUncheckedUpdateWithoutPurchaseItemsInput = {
@@ -1474,6 +2130,10 @@ export type ProductUncheckedUpdateWithoutPurchaseItemsInput = {
   inventory?: Prisma.InventoryUncheckedUpdateOneWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUncheckedUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUncheckedUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductCreateManyCategoryInput = {
@@ -1513,6 +2173,10 @@ export type ProductUpdateWithoutCategoryInput = {
   purchaseItems?: Prisma.PurchaseItemUpdateManyWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductUncheckedUpdateWithoutCategoryInput = {
@@ -1535,6 +2199,10 @@ export type ProductUncheckedUpdateWithoutCategoryInput = {
   purchaseItems?: Prisma.PurchaseItemUncheckedUpdateManyWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUncheckedUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUncheckedUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductUncheckedUpdateManyWithoutCategoryInput = {
@@ -1591,6 +2259,10 @@ export type ProductUpdateWithoutSupplierInput = {
   purchaseItems?: Prisma.PurchaseItemUpdateManyWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductUncheckedUpdateWithoutSupplierInput = {
@@ -1613,6 +2285,10 @@ export type ProductUncheckedUpdateWithoutSupplierInput = {
   purchaseItems?: Prisma.PurchaseItemUncheckedUpdateManyWithoutProductNestedInput
   saleItems?: Prisma.SaleItemUncheckedUpdateManyWithoutProductNestedInput
   medicineInformation?: Prisma.MedicineInformationUncheckedUpdateOneWithoutProductNestedInput
+  alternativeFor?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutSourceProductNestedInput
+  alternatives?: Prisma.MedicineAlternativeUncheckedUpdateManyWithoutAlternativeProductNestedInput
+  substitutionsAsSource?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutSourceProductNestedInput
+  substitutionsAsAlternative?: Prisma.MedicineSubstitutionUncheckedUpdateManyWithoutAlternativeProductNestedInput
 }
 
 export type ProductUncheckedUpdateManyWithoutSupplierInput = {
@@ -1641,12 +2317,20 @@ export type ProductCountOutputType = {
   batches: number
   purchaseItems: number
   saleItems: number
+  alternativeFor: number
+  alternatives: number
+  substitutionsAsSource: number
+  substitutionsAsAlternative: number
 }
 
 export type ProductCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   batches?: boolean | ProductCountOutputTypeCountBatchesArgs
   purchaseItems?: boolean | ProductCountOutputTypeCountPurchaseItemsArgs
   saleItems?: boolean | ProductCountOutputTypeCountSaleItemsArgs
+  alternativeFor?: boolean | ProductCountOutputTypeCountAlternativeForArgs
+  alternatives?: boolean | ProductCountOutputTypeCountAlternativesArgs
+  substitutionsAsSource?: boolean | ProductCountOutputTypeCountSubstitutionsAsSourceArgs
+  substitutionsAsAlternative?: boolean | ProductCountOutputTypeCountSubstitutionsAsAlternativeArgs
 }
 
 /**
@@ -1680,6 +2364,34 @@ export type ProductCountOutputTypeCountSaleItemsArgs<ExtArgs extends runtime.Typ
   where?: Prisma.SaleItemWhereInput
 }
 
+/**
+ * ProductCountOutputType without action
+ */
+export type ProductCountOutputTypeCountAlternativeForArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MedicineAlternativeWhereInput
+}
+
+/**
+ * ProductCountOutputType without action
+ */
+export type ProductCountOutputTypeCountAlternativesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MedicineAlternativeWhereInput
+}
+
+/**
+ * ProductCountOutputType without action
+ */
+export type ProductCountOutputTypeCountSubstitutionsAsSourceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MedicineSubstitutionWhereInput
+}
+
+/**
+ * ProductCountOutputType without action
+ */
+export type ProductCountOutputTypeCountSubstitutionsAsAlternativeArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MedicineSubstitutionWhereInput
+}
+
 
 export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1704,6 +2416,10 @@ export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   purchaseItems?: boolean | Prisma.Product$purchaseItemsArgs<ExtArgs>
   saleItems?: boolean | Prisma.Product$saleItemsArgs<ExtArgs>
   medicineInformation?: boolean | Prisma.Product$medicineInformationArgs<ExtArgs>
+  alternativeFor?: boolean | Prisma.Product$alternativeForArgs<ExtArgs>
+  alternatives?: boolean | Prisma.Product$alternativesArgs<ExtArgs>
+  substitutionsAsSource?: boolean | Prisma.Product$substitutionsAsSourceArgs<ExtArgs>
+  substitutionsAsAlternative?: boolean | Prisma.Product$substitutionsAsAlternativeArgs<ExtArgs>
   _count?: boolean | Prisma.ProductCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["product"]>
 
@@ -1774,6 +2490,10 @@ export type ProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   purchaseItems?: boolean | Prisma.Product$purchaseItemsArgs<ExtArgs>
   saleItems?: boolean | Prisma.Product$saleItemsArgs<ExtArgs>
   medicineInformation?: boolean | Prisma.Product$medicineInformationArgs<ExtArgs>
+  alternativeFor?: boolean | Prisma.Product$alternativeForArgs<ExtArgs>
+  alternatives?: boolean | Prisma.Product$alternativesArgs<ExtArgs>
+  substitutionsAsSource?: boolean | Prisma.Product$substitutionsAsSourceArgs<ExtArgs>
+  substitutionsAsAlternative?: boolean | Prisma.Product$substitutionsAsAlternativeArgs<ExtArgs>
   _count?: boolean | Prisma.ProductCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ProductIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1795,6 +2515,10 @@ export type $ProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     purchaseItems: Prisma.$PurchaseItemPayload<ExtArgs>[]
     saleItems: Prisma.$SaleItemPayload<ExtArgs>[]
     medicineInformation: Prisma.$MedicineInformationPayload<ExtArgs> | null
+    alternativeFor: Prisma.$MedicineAlternativePayload<ExtArgs>[]
+    alternatives: Prisma.$MedicineAlternativePayload<ExtArgs>[]
+    substitutionsAsSource: Prisma.$MedicineSubstitutionPayload<ExtArgs>[]
+    substitutionsAsAlternative: Prisma.$MedicineSubstitutionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2213,6 +2937,10 @@ export interface Prisma__ProductClient<T, Null = never, ExtArgs extends runtime.
   purchaseItems<T extends Prisma.Product$purchaseItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$purchaseItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PurchaseItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   saleItems<T extends Prisma.Product$saleItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$saleItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SaleItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   medicineInformation<T extends Prisma.Product$medicineInformationArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$medicineInformationArgs<ExtArgs>>): Prisma.Prisma__MedicineInformationClient<runtime.Types.Result.GetResult<Prisma.$MedicineInformationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  alternativeFor<T extends Prisma.Product$alternativeForArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$alternativeForArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MedicineAlternativePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  alternatives<T extends Prisma.Product$alternativesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$alternativesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MedicineAlternativePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  substitutionsAsSource<T extends Prisma.Product$substitutionsAsSourceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$substitutionsAsSourceArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MedicineSubstitutionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  substitutionsAsAlternative<T extends Prisma.Product$substitutionsAsAlternativeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$substitutionsAsAlternativeArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MedicineSubstitutionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2765,6 +3493,102 @@ export type Product$medicineInformationArgs<ExtArgs extends runtime.Types.Extens
    */
   include?: Prisma.MedicineInformationInclude<ExtArgs> | null
   where?: Prisma.MedicineInformationWhereInput
+}
+
+/**
+ * Product.alternativeFor
+ */
+export type Product$alternativeForArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MedicineAlternative
+   */
+  select?: Prisma.MedicineAlternativeSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MedicineAlternative
+   */
+  omit?: Prisma.MedicineAlternativeOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MedicineAlternativeInclude<ExtArgs> | null
+  where?: Prisma.MedicineAlternativeWhereInput
+  orderBy?: Prisma.MedicineAlternativeOrderByWithRelationInput | Prisma.MedicineAlternativeOrderByWithRelationInput[]
+  cursor?: Prisma.MedicineAlternativeWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MedicineAlternativeScalarFieldEnum | Prisma.MedicineAlternativeScalarFieldEnum[]
+}
+
+/**
+ * Product.alternatives
+ */
+export type Product$alternativesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MedicineAlternative
+   */
+  select?: Prisma.MedicineAlternativeSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MedicineAlternative
+   */
+  omit?: Prisma.MedicineAlternativeOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MedicineAlternativeInclude<ExtArgs> | null
+  where?: Prisma.MedicineAlternativeWhereInput
+  orderBy?: Prisma.MedicineAlternativeOrderByWithRelationInput | Prisma.MedicineAlternativeOrderByWithRelationInput[]
+  cursor?: Prisma.MedicineAlternativeWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MedicineAlternativeScalarFieldEnum | Prisma.MedicineAlternativeScalarFieldEnum[]
+}
+
+/**
+ * Product.substitutionsAsSource
+ */
+export type Product$substitutionsAsSourceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MedicineSubstitution
+   */
+  select?: Prisma.MedicineSubstitutionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MedicineSubstitution
+   */
+  omit?: Prisma.MedicineSubstitutionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MedicineSubstitutionInclude<ExtArgs> | null
+  where?: Prisma.MedicineSubstitutionWhereInput
+  orderBy?: Prisma.MedicineSubstitutionOrderByWithRelationInput | Prisma.MedicineSubstitutionOrderByWithRelationInput[]
+  cursor?: Prisma.MedicineSubstitutionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MedicineSubstitutionScalarFieldEnum | Prisma.MedicineSubstitutionScalarFieldEnum[]
+}
+
+/**
+ * Product.substitutionsAsAlternative
+ */
+export type Product$substitutionsAsAlternativeArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MedicineSubstitution
+   */
+  select?: Prisma.MedicineSubstitutionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MedicineSubstitution
+   */
+  omit?: Prisma.MedicineSubstitutionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MedicineSubstitutionInclude<ExtArgs> | null
+  where?: Prisma.MedicineSubstitutionWhereInput
+  orderBy?: Prisma.MedicineSubstitutionOrderByWithRelationInput | Prisma.MedicineSubstitutionOrderByWithRelationInput[]
+  cursor?: Prisma.MedicineSubstitutionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MedicineSubstitutionScalarFieldEnum | Prisma.MedicineSubstitutionScalarFieldEnum[]
 }
 
 /**

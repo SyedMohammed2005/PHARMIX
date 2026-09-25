@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Pencil,
   Trash2,
+  BookOpen,
 } from "lucide-react";
 
 type UserRole =
@@ -62,6 +63,36 @@ type ProductResponse = {
   message?: string;
 };
 
+type MedicineInformation = {
+  id: string;
+  productId: string;
+  dosageForm: string | null;
+  strength: string | null;
+  drugClass: string | null;
+  therapeuticCategory: string | null;
+  uses: string | null;
+  precautions: string | null;
+  sideEffects: string | null;
+  storageInformation: string | null;
+  prescriptionInformation: string | null;
+  verifiedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  references: {
+    id: string;
+    sourceName: string;
+    sourceType: string;
+    sourceUrl: string | null;
+    accessedAt: string;
+  }[];
+};
+
+type MedicineInformationResponse = {
+  success: boolean;
+  data?: MedicineInformation;
+  error?: string;
+};
+
 type CurrentUserResponse = {
   success: boolean;
 
@@ -83,7 +114,13 @@ export default function ProductDetailsPage() {
   const [product, setProduct] =
     useState<Product | null>(null);
 
+  const [medicineInformation, setMedicineInformation] =
+    useState<MedicineInformation | null>(null);
+
   const [loading, setLoading] =
+    useState(true);
+
+  const [medicineLoading, setMedicineLoading] =
     useState(true);
 
   const [error, setError] =
@@ -92,8 +129,8 @@ export default function ProductDetailsPage() {
   const [currentUserRole, setCurrentUserRole] =
     useState<UserRole | null>(null);
 
-    const [deleting, setDeleting] =
-  useState(false);
+  const [deleting, setDeleting] =
+    useState(false);
 
   const fetchProduct = async () => {
     try {
@@ -136,6 +173,46 @@ export default function ProductDetailsPage() {
     }
   };
 
+  const fetchMedicineInformation = async () => {
+    try {
+      setMedicineLoading(true);
+
+      const response = await fetch(
+        `/api/medicine-information?productId=${productId}`,
+      );
+
+      const result: MedicineInformationResponse =
+        await response.json();
+
+      if (response.status === 404) {
+        setMedicineInformation(null);
+        return;
+      }
+
+      if (
+        !response.ok ||
+        !result.success ||
+        !result.data
+      ) {
+        throw new Error(
+          result.error ||
+            "Failed to fetch medicine information",
+        );
+      }
+
+      setMedicineInformation(result.data);
+    } catch (error) {
+      console.error(
+        "Failed to fetch medicine information:",
+        error,
+      );
+
+      setMedicineInformation(null);
+    } finally {
+      setMedicineLoading(false);
+    }
+  };
+
   const fetchCurrentUser = async () => {
     try {
       const response = await fetch(
@@ -165,6 +242,7 @@ export default function ProductDetailsPage() {
   useEffect(() => {
     if (productId) {
       fetchProduct();
+      fetchMedicineInformation();
     }
 
     fetchCurrentUser();
@@ -174,54 +252,54 @@ export default function ProductDetailsPage() {
     currentUserRole === "ADMIN" ||
     currentUserRole === "INVENTORY_MANAGER";
 
-    const canDelete =
-  currentUserRole === "ADMIN";
+  const canDelete =
+    currentUserRole === "ADMIN";
 
   const handleDelete = async () => {
-  const confirmed = window.confirm(
-    `Are you sure you want to delete "${product?.name}"? This action cannot be undone.`,
-  );
-
-  if (!confirmed) {
-    return;
-  }
-
-  try {
-    setDeleting(true);
-
-    const response = await fetch(
-      `/api/products/${productId}`,
-      {
-        method: "DELETE",
-      },
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${product?.name}"? This action cannot be undone.`,
     );
 
-    const result = await response.json();
-
-    if (!response.ok || !result.success) {
-      throw new Error(
-        result.message ||
-          "Failed to delete product",
-      );
+    if (!confirmed) {
+      return;
     }
 
-    router.push("/products");
-    router.refresh();
-  } catch (error) {
-    console.error(
-      "Failed to delete product:",
-      error,
-    );
+    try {
+      setDeleting(true);
 
-    alert(
-      error instanceof Error
-        ? error.message
-        : "Failed to delete product",
-    );
-  } finally {
-    setDeleting(false);
-  }
-};
+      const response = await fetch(
+        `/api/products/${productId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message ||
+            "Failed to delete product",
+        );
+      }
+
+      router.push("/products");
+      router.refresh();
+    } catch (error) {
+      console.error(
+        "Failed to delete product:",
+        error,
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete product",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -283,48 +361,47 @@ export default function ProductDetailsPage() {
           Back to Products
         </Link>
 
-        {/* ROLE-BASED EDIT BUTTON */}
+        {/* ROLE-BASED ACTIONS */}
 
-      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
 
-  {canEdit && (
-    <Link
-      href={`/products/${product.id}/edit`}
-      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-    >
-      <Pencil className="h-4 w-4" />
+          {canEdit && (
+            <Link
+              href={`/products/${product.id}/edit`}
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            >
+              <Pencil className="h-4 w-4" />
 
-      Edit Product
-    </Link>
-  )}
+              Edit Product
+            </Link>
+          )}
 
-  {canDelete && (
-    <button
-      type="button"
-      onClick={handleDelete}
-      disabled={deleting}
-      className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {deleting ? (
-        <>
-          <RefreshCw className="h-4 w-4 animate-spin" />
+          {canDelete && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {deleting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
 
-          Deleting...
-        </>
-      ) : (
-        <>
-          <Trash2 className="h-4 w-4" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" />
 
-          Delete Product
-        </>
-      )}
-    </button>
-  )}
+                  Delete Product
+                </>
+              )}
+            </button>
+          )}
 
-</div>
+        </div>
 
       </div>
-
 
       {/* HEADER */}
 
@@ -359,7 +436,6 @@ export default function ProductDetailsPage() {
 
           </div>
 
-
           {/* PRESCRIPTION BADGE */}
 
           <div>
@@ -384,11 +460,9 @@ export default function ProductDetailsPage() {
 
       </div>
 
-
       {/* PRODUCT INFORMATION */}
 
       <div className="grid gap-6 lg:grid-cols-2">
-
 
         {/* BASIC INFORMATION */}
 
@@ -404,7 +478,6 @@ export default function ProductDetailsPage() {
 
           </div>
 
-
           <div className="space-y-5">
 
             <div>
@@ -417,7 +490,6 @@ export default function ProductDetailsPage() {
               </p>
             </div>
 
-
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 Generic Name
@@ -428,7 +500,6 @@ export default function ProductDetailsPage() {
               </p>
             </div>
 
-
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 Brand
@@ -438,7 +509,6 @@ export default function ProductDetailsPage() {
                 {product.brand || "N/A"}
               </p>
             </div>
-
 
             <div className="flex items-start gap-3">
 
@@ -455,7 +525,6 @@ export default function ProductDetailsPage() {
               </div>
 
             </div>
-
 
             <div className="flex items-start gap-3">
 
@@ -477,7 +546,6 @@ export default function ProductDetailsPage() {
 
         </div>
 
-
         {/* CATEGORY AND SUPPLIER */}
 
         <div className="rounded-2xl border bg-white p-6 shadow-sm">
@@ -492,7 +560,6 @@ export default function ProductDetailsPage() {
 
           </div>
 
-
           <div className="space-y-6">
 
             <div>
@@ -506,7 +573,6 @@ export default function ProductDetailsPage() {
               </p>
 
             </div>
-
 
             <div className="border-t pt-5">
 
@@ -536,6 +602,231 @@ export default function ProductDetailsPage() {
 
       </div>
 
+      {/* MEDICINE INTELLIGENCE */}
+
+      <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+
+        <div className="mb-6 flex items-center justify-between gap-4">
+
+          <div className="flex items-center gap-2">
+
+            <BookOpen className="h-5 w-5 text-emerald-600" />
+
+            <h2 className="text-lg font-bold text-gray-900">
+              Medicine Information
+            </h2>
+
+          </div>
+
+          {medicineInformation?.verifiedAt && (
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+              <ShieldCheck className="h-4 w-4" />
+              Verified
+            </span>
+          )}
+
+        </div>
+
+        {medicineLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <RefreshCw className="h-6 w-6 animate-spin text-emerald-600" />
+          </div>
+        ) : medicineInformation ? (
+          <div className="space-y-6">
+
+            {/* MEDICINE CLASSIFICATION */}
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+              <div className="rounded-xl bg-emerald-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
+                  Dosage Form
+                </p>
+
+                <p className="mt-2 font-semibold text-gray-900">
+                  {medicineInformation.dosageForm || "N/A"}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-blue-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-blue-700">
+                  Strength
+                </p>
+
+                <p className="mt-2 font-semibold text-gray-900">
+                  {medicineInformation.strength || "N/A"}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-purple-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-purple-700">
+                  Drug Class
+                </p>
+
+                <p className="mt-2 font-semibold text-gray-900">
+                  {medicineInformation.drugClass || "N/A"}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-amber-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-amber-700">
+                  Therapeutic Category
+                </p>
+
+                <p className="mt-2 font-semibold text-gray-900">
+                  {medicineInformation.therapeuticCategory ||
+                    "N/A"}
+                </p>
+              </div>
+
+            </div>
+
+            {/* MEDICINE DETAILS */}
+
+            <div className="grid gap-6 md:grid-cols-2">
+
+              <div className="rounded-xl border bg-gray-50 p-5">
+
+                <h3 className="font-semibold text-gray-900">
+                  Uses
+                </h3>
+
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
+                  {medicineInformation.uses || "N/A"}
+                </p>
+
+              </div>
+
+              <div className="rounded-xl border bg-gray-50 p-5">
+
+                <h3 className="font-semibold text-gray-900">
+                  Precautions
+                </h3>
+
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
+                  {medicineInformation.precautions || "N/A"}
+                </p>
+
+              </div>
+
+              <div className="rounded-xl border bg-gray-50 p-5">
+
+                <h3 className="font-semibold text-gray-900">
+                  Side Effects
+                </h3>
+
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
+                  {medicineInformation.sideEffects || "N/A"}
+                </p>
+
+              </div>
+
+              <div className="rounded-xl border bg-gray-50 p-5">
+
+                <h3 className="font-semibold text-gray-900">
+                  Storage Information
+                </h3>
+
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
+                  {medicineInformation.storageInformation ||
+                    "N/A"}
+                </p>
+
+              </div>
+
+            </div>
+
+            {/* PRESCRIPTION INFORMATION */}
+
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+
+              <div className="flex items-center gap-2">
+
+                <ShieldCheck className="h-5 w-5 text-amber-700" />
+
+                <h3 className="font-semibold text-amber-900">
+                  Prescription Information
+                </h3>
+
+              </div>
+
+              <p className="mt-2 whitespace-pre-line text-sm leading-6 text-amber-800">
+                {medicineInformation.prescriptionInformation ||
+                  "N/A"}
+              </p>
+
+            </div>
+
+            {/* REFERENCES */}
+
+            {medicineInformation.references.length > 0 && (
+              <div className="border-t pt-6">
+
+                <div className="mb-4 flex items-center gap-2">
+
+                  <BookOpen className="h-4 w-4 text-emerald-600" />
+
+                  <h3 className="font-semibold text-gray-900">
+                    References
+                  </h3>
+
+                </div>
+
+                <div className="space-y-3">
+
+                  {medicineInformation.references.map(
+                    (reference) => (
+                      <div
+                        key={reference.id}
+                        className="rounded-lg border bg-gray-50 p-4"
+                      >
+
+                        <p className="font-medium text-gray-900">
+                          {reference.sourceName}
+                        </p>
+
+                        <p className="mt-1 text-xs text-gray-500">
+                          {reference.sourceType}
+                        </p>
+
+                        {reference.sourceUrl && (
+                          <a
+                            href={reference.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 inline-block text-sm font-medium text-emerald-600 hover:text-emerald-700"
+                          >
+                            View Source
+                          </a>
+                        )}
+
+                      </div>
+                    ),
+                  )}
+
+                </div>
+
+              </div>
+            )}
+
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+
+            <BookOpen className="mx-auto h-10 w-10 text-gray-300" />
+
+            <h3 className="mt-3 font-semibold text-gray-800">
+              Medicine information not available
+            </h3>
+
+            <p className="mt-1 text-sm text-gray-500">
+              No medicine intelligence has been added for this product yet.
+            </p>
+
+          </div>
+        )}
+
+      </div>
 
       {/* PRICING */}
 
@@ -551,11 +842,7 @@ export default function ProductDetailsPage() {
 
         </div>
 
-
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-
-
-          {/* PURCHASE PRICE */}
 
           <div className="rounded-xl bg-gray-50 p-5">
 
@@ -569,9 +856,6 @@ export default function ProductDetailsPage() {
 
           </div>
 
-
-          {/* SELLING PRICE */}
-
           <div className="rounded-xl bg-emerald-50 p-5">
 
             <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
@@ -584,9 +868,6 @@ export default function ProductDetailsPage() {
 
           </div>
 
-
-          {/* MRP */}
-
           <div className="rounded-xl bg-blue-50 p-5">
 
             <p className="text-xs font-medium uppercase tracking-wide text-blue-700">
@@ -598,9 +879,6 @@ export default function ProductDetailsPage() {
             </p>
 
           </div>
-
-
-          {/* GST */}
 
           <div className="rounded-xl bg-amber-50 p-5">
 
@@ -618,7 +896,6 @@ export default function ProductDetailsPage() {
 
       </div>
 
-
       {/* SYSTEM INFORMATION */}
 
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
@@ -632,7 +909,6 @@ export default function ProductDetailsPage() {
           </h2>
 
         </div>
-
 
         <div className="grid gap-5 md:grid-cols-3">
 
@@ -648,7 +924,6 @@ export default function ProductDetailsPage() {
 
           </div>
 
-
           <div>
 
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -662,7 +937,6 @@ export default function ProductDetailsPage() {
             </p>
 
           </div>
-
 
           <div>
 

@@ -410,6 +410,8 @@ export const ModelName = {
   ReturnItem: 'ReturnItem',
   Payment: 'Payment',
   Product: 'Product',
+  MedicineSubstitution: 'MedicineSubstitution',
+  MedicineAlternative: 'MedicineAlternative',
   MedicineInformation: 'MedicineInformation',
   MedicineReference: 'MedicineReference',
   Batch: 'Batch',
@@ -434,7 +436,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "auditLog" | "notification" | "inventory" | "category" | "supplier" | "customer" | "sale" | "saleReturn" | "saleItem" | "returnItem" | "payment" | "product" | "medicineInformation" | "medicineReference" | "batch" | "stockTransaction" | "purchase" | "purchaseReturn" | "purchaseReturnItem" | "purchaseItem" | "purchasePayment"
+    modelProps: "user" | "auditLog" | "notification" | "inventory" | "category" | "supplier" | "customer" | "sale" | "saleReturn" | "saleItem" | "returnItem" | "payment" | "product" | "medicineSubstitution" | "medicineAlternative" | "medicineInformation" | "medicineReference" | "batch" | "stockTransaction" | "purchase" | "purchaseReturn" | "purchaseReturnItem" | "purchaseItem" | "purchasePayment"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1400,6 +1402,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MedicineSubstitution: {
+      payload: Prisma.$MedicineSubstitutionPayload<ExtArgs>
+      fields: Prisma.MedicineSubstitutionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MedicineSubstitutionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSubstitutionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MedicineSubstitutionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSubstitutionPayload>
+        }
+        findFirst: {
+          args: Prisma.MedicineSubstitutionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSubstitutionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MedicineSubstitutionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSubstitutionPayload>
+        }
+        findMany: {
+          args: Prisma.MedicineSubstitutionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSubstitutionPayload>[]
+        }
+        create: {
+          args: Prisma.MedicineSubstitutionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSubstitutionPayload>
+        }
+        createMany: {
+          args: Prisma.MedicineSubstitutionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MedicineSubstitutionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSubstitutionPayload>[]
+        }
+        delete: {
+          args: Prisma.MedicineSubstitutionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSubstitutionPayload>
+        }
+        update: {
+          args: Prisma.MedicineSubstitutionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSubstitutionPayload>
+        }
+        deleteMany: {
+          args: Prisma.MedicineSubstitutionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MedicineSubstitutionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MedicineSubstitutionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSubstitutionPayload>[]
+        }
+        upsert: {
+          args: Prisma.MedicineSubstitutionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSubstitutionPayload>
+        }
+        aggregate: {
+          args: Prisma.MedicineSubstitutionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMedicineSubstitution>
+        }
+        groupBy: {
+          args: Prisma.MedicineSubstitutionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicineSubstitutionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MedicineSubstitutionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicineSubstitutionCountAggregateOutputType> | number
+        }
+      }
+    }
+    MedicineAlternative: {
+      payload: Prisma.$MedicineAlternativePayload<ExtArgs>
+      fields: Prisma.MedicineAlternativeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MedicineAlternativeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineAlternativePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MedicineAlternativeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineAlternativePayload>
+        }
+        findFirst: {
+          args: Prisma.MedicineAlternativeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineAlternativePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MedicineAlternativeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineAlternativePayload>
+        }
+        findMany: {
+          args: Prisma.MedicineAlternativeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineAlternativePayload>[]
+        }
+        create: {
+          args: Prisma.MedicineAlternativeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineAlternativePayload>
+        }
+        createMany: {
+          args: Prisma.MedicineAlternativeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MedicineAlternativeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineAlternativePayload>[]
+        }
+        delete: {
+          args: Prisma.MedicineAlternativeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineAlternativePayload>
+        }
+        update: {
+          args: Prisma.MedicineAlternativeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineAlternativePayload>
+        }
+        deleteMany: {
+          args: Prisma.MedicineAlternativeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MedicineAlternativeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MedicineAlternativeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineAlternativePayload>[]
+        }
+        upsert: {
+          args: Prisma.MedicineAlternativeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineAlternativePayload>
+        }
+        aggregate: {
+          args: Prisma.MedicineAlternativeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMedicineAlternative>
+        }
+        groupBy: {
+          args: Prisma.MedicineAlternativeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicineAlternativeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MedicineAlternativeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicineAlternativeCountAggregateOutputType> | number
+        }
+      }
+    }
     MedicineInformation: {
       payload: Prisma.$MedicineInformationPayload<ExtArgs>
       fields: Prisma.MedicineInformationFieldRefs
@@ -2295,6 +2445,34 @@ export const ProductScalarFieldEnum = {
 export type ProductScalarFieldEnum = (typeof ProductScalarFieldEnum)[keyof typeof ProductScalarFieldEnum]
 
 
+export const MedicineSubstitutionScalarFieldEnum = {
+  id: 'id',
+  sourceProductId: 'sourceProductId',
+  alternativeProductId: 'alternativeProductId',
+  pharmacistId: 'pharmacistId',
+  reason: 'reason',
+  status: 'status',
+  confirmedAt: 'confirmedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MedicineSubstitutionScalarFieldEnum = (typeof MedicineSubstitutionScalarFieldEnum)[keyof typeof MedicineSubstitutionScalarFieldEnum]
+
+
+export const MedicineAlternativeScalarFieldEnum = {
+  id: 'id',
+  sourceProductId: 'sourceProductId',
+  alternativeProductId: 'alternativeProductId',
+  reason: 'reason',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MedicineAlternativeScalarFieldEnum = (typeof MedicineAlternativeScalarFieldEnum)[keyof typeof MedicineAlternativeScalarFieldEnum]
+
+
 export const MedicineInformationScalarFieldEnum = {
   id: 'id',
   productId: 'productId',
@@ -2826,6 +3004,8 @@ export type GlobalOmitConfig = {
   returnItem?: Prisma.ReturnItemOmit
   payment?: Prisma.PaymentOmit
   product?: Prisma.ProductOmit
+  medicineSubstitution?: Prisma.MedicineSubstitutionOmit
+  medicineAlternative?: Prisma.MedicineAlternativeOmit
   medicineInformation?: Prisma.MedicineInformationOmit
   medicineReference?: Prisma.MedicineReferenceOmit
   batch?: Prisma.BatchOmit

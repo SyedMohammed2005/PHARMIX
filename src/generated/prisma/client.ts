@@ -107,6 +107,16 @@ export type Payment = Prisma.PaymentModel
  */
 export type Product = Prisma.ProductModel
 /**
+ * Model MedicineInformation
+ * 
+ */
+export type MedicineInformation = Prisma.MedicineInformationModel
+/**
+ * Model MedicineReference
+ * 
+ */
+export type MedicineReference = Prisma.MedicineReferenceModel
+/**
  * Model Batch
  * 
  */

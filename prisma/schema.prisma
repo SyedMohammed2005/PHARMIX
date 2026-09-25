@@ -231,30 +231,76 @@ model Payment {
 }
 
 model Product {
-  id                   String         @id @default(cuid())
+  id                   String               @id @default(cuid())
   name                 String
   genericName          String?
   brand                String?
-  sku                  String         @unique
-  barcode              String?        @unique
+  sku                  String               @unique
+  barcode              String?              @unique
   purchasePrice        Float
   sellingPrice         Float
   mrp                  Float
-  gst                  Float          @default(0)
-  requiresPrescription Boolean        @default(false)
+  gst                  Float                @default(0)
+  requiresPrescription Boolean              @default(false)
   categoryId           String
   supplierId           String
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
   batches              Batch[]
   inventory            Inventory?
-  category             Category       @relation(fields: [categoryId], references: [id])
-  supplier             Supplier       @relation(fields: [supplierId], references: [id])
+  category             Category             @relation(fields: [categoryId], references: [id])
+  supplier             Supplier             @relation(fields: [supplierId], references: [id])
   purchaseItems        PurchaseItem[]
   saleItems            SaleItem[]
+  medicineInformation  MedicineInformation?
 
   @@index([categoryId])
   @@index([supplierId])
+}
+
+model MedicineInformation {
+  id        String @id @default(cuid())
+  productId String @unique
+
+  dosageForm          String?
+  strength            String?
+  drugClass           String?
+  therapeuticCategory String?
+
+  uses                    String?
+  precautions             String?
+  sideEffects             String?
+  storageInformation      String?
+  prescriptionInformation String?
+
+  verifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product    Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  references MedicineReference[]
+
+  @@index([drugClass])
+  @@index([therapeuticCategory])
+}
+
+model MedicineReference {
+  id                    String @id @default(cuid())
+  medicineInformationId String
+
+  sourceName String
+  sourceType String
+  sourceUrl  String?
+  accessedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  medicineInformation MedicineInformation @relation(fields: [medicineInformationId], references: [id], onDelete: Cascade)
+
+  @@index([medicineInformationId])
+  @@index([sourceType])
 }
 
 model Batch {

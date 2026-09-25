@@ -339,11 +339,29 @@ function isSupportedCopilotQuestion(question: string) {
     "1 month",
   ];
 
+  const contextualKeywords = [
+    "those products",
+    "those medicines",
+    "those medicine",
+    "what about them",
+    "what about those",
+    "what about these",
+    "show them",
+    "show those",
+    "show these",
+    "tell me about them",
+    "tell me about those",
+    "tell me about these",
+  ];
+
   return (
     supportedKeywords.some((keyword) =>
       normalized.includes(keyword),
     ) ||
     timePeriodKeywords.some((keyword) =>
+      normalized.includes(keyword),
+    ) ||
+    contextualKeywords.some((keyword) =>
       normalized.includes(keyword),
     )
   );

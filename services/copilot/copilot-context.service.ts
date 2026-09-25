@@ -67,31 +67,24 @@ export async function buildCopilotContext({
     }
 
     case "STOCKOUT_RISK": {
-      const data = await getInventoryIntelligence({
-        latitude,
-        longitude,
-        days: forecastDays,
-      });
+  const data = await getInventoryIntelligence({
+    latitude,
+    longitude,
+    days: forecastDays,
+  });
 
-      const stockoutProducts = data.products.filter(
-        (product) =>
-          product.priority === "STOCKOUT" ||
-          product.priority === "URGENT_RESTOCK",
-      );
+  evidence.push({
+    source: "INVENTORY_INTELLIGENCE",
+    label: "PHARMIX inventory risk intelligence",
+    data: {
+      forecast: data.forecast,
+      summary: data.summary,
+      products: data.products,
+    },
+  });
 
-      evidence.push({
-        source: "INVENTORY_INTELLIGENCE",
-        label: "PHARMIX inventory risk intelligence",
-        data: {
-          forecast: data.forecast,
-          summary: data.summary,
-          products: stockoutProducts,
-        },
-      });
-
-      break;
-    }
-
+  break;
+}
     case "REORDER": {
       const data = await getInventoryRecommendations({
         latitude,

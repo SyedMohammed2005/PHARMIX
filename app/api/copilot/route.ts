@@ -75,7 +75,11 @@ export async function POST(request: NextRequest) {
             .slice(-10)
         : [];
 
-    const intentResult = detectCopilotIntent(question, days);
+   const intentResult = detectCopilotIntent(
+  question,
+  days,
+  conversationHistory,
+);
 
     const context = await buildCopilotContext({
       question,

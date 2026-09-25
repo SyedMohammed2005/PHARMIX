@@ -1,4 +1,5 @@
 import {
+  CopilotConversationMessage,
   CopilotIntent,
   CopilotIntentResult,
   CopilotTimePeriod,
@@ -143,7 +144,10 @@ function normalizeQuestion(question: string): string {
     .replace(/\s+/g, " ");
 }
 
-function detectTimePeriod(question: string, fallbackDays: number): CopilotTimePeriod {
+function detectTimePeriod(
+  question: string,
+  fallbackDays: number,
+): CopilotTimePeriod {
   const normalizedQuestion = normalizeQuestion(question);
 
   const periodRules: Array<{
@@ -221,26 +225,74 @@ function detectTimePeriod(question: string, fallbackDays: number): CopilotTimePe
     }
   }
 
-return {
-  days: fallbackDays,
-  label:
-    fallbackDays === 1
-      ? "today"
-      : fallbackDays === 7
-        ? "next 7 days"
-        : fallbackDays === 14
-          ? "next 14 days"
-          : fallbackDays === 30
-            ? "next 30 days"
-            : `next ${fallbackDays} days`,
-};
+  return {
+    days: fallbackDays,
+    label:
+      fallbackDays === 1
+        ? "today"
+        : fallbackDays === 7
+          ? "next 7 days"
+          : fallbackDays === 14
+            ? "next 14 days"
+            : fallbackDays === 30
+              ? "next 30 days"
+              : `next ${fallbackDays} days`,
+  };
 }
+
+function isContextualFollowUp(question: string): boolean {
+  const normalizedQuestion = normalizeQuestion(question);
+
+  const contextualPhrases = [
+    "those products",
+    "those medicines",
+    "those medicine",
+    "what about them",
+    "what about those",
+    "what about these",
+    "show them",
+    "show those",
+    "show these",
+    "tell me about them",
+    "tell me about those",
+    "tell me about these",
+    "and those",
+    "and these",
+    "what about that",
+    "what about the above",
+    "show the above",
+  ];
+
+  return contextualPhrases.some((phrase) =>
+    normalizedQuestion.includes(phrase),
+  );
+}
+
+function getPreviousUserQuestion(
+  conversationHistory: CopilotConversationMessage[],
+): string | null {
+  for (let index = conversationHistory.length - 1; index >= 0; index--) {
+    const message = conversationHistory[index];
+
+    if (message.role === "user") {
+      return message.content;
+    }
+  }
+
+  return null;
+}
+
 export function detectCopilotIntent(
   question: string,
   fallbackDays = 7,
+  conversationHistory: CopilotConversationMessage[] = [],
 ): CopilotIntentResult {
   const normalizedQuestion = normalizeQuestion(question);
-const timePeriod = detectTimePeriod(question, fallbackDays);
+
+  const timePeriod = detectTimePeriod(
+    question,
+    fallbackDays,
+  );
 
   if (!normalizedQuestion) {
     return {
@@ -250,6 +302,33 @@ const timePeriod = detectTimePeriod(question, fallbackDays);
         "No question was provided, so no specific intent could be detected.",
       timePeriod,
     };
+  }
+
+  if (isContextualFollowUp(question)) {
+    const previousUserQuestion =
+      getPreviousUserQuestion(conversationHistory);
+
+    if (previousUserQuestion) {
+      const previousIntent = detectCopilotIntent(
+        previousUserQuestion,
+        fallbackDays,
+      );
+
+      if (
+        previousIntent.intent !== "INVENTORY_OVERVIEW" &&
+        previousIntent.intent !== "GREETING"
+      ) {
+        return {
+          intent: previousIntent.intent,
+          confidence: 0.9,
+          reason:
+            `The current question is a contextual follow-up to the previous user question. ` +
+            `Inherited intent: ${previousIntent.intent}. ` +
+            `Time period: ${timePeriod.label}.`,
+          timePeriod,
+        };
+      }
+    }
   }
 
   for (const rule of INTENT_RULES) {
@@ -265,7 +344,9 @@ const timePeriod = detectTimePeriod(question, fallbackDays);
               `(^|\\s)${escapedKeyword}(?=\\s|$|[!?.,])`,
             );
 
-            return pattern.test(normalizedQuestion);
+            return pattern.test(
+              normalizedQuestion,
+            );
           })
         : rule.keywords.find((keyword) =>
             normalizedQuestion.includes(keyword),

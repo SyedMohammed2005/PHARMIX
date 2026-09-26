@@ -16,10 +16,12 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="relative flex min-h-screen">
+    <div className="relative flex min-h-screen bg-gray-50">
+      {/* Fixed icon sidebar */}
       <Sidebar role={currentUser.role} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* Main application area */}
+      <div className="flex min-w-0 flex-1 flex-col pl-[56px]">
         <DashboardHeader role={currentUser.role} />
 
         <main className="flex-1 bg-gray-50 p-6">
@@ -32,3 +34,4 @@ export default async function DashboardLayout({
     </div>
   );
 }
+

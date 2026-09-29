@@ -30,8 +30,16 @@ export function LoginForm() {
         }),
       });
 
-   const data = await response.json();
+  const contentType = response.headers.get("content-type");
 
+if (!contentType?.includes("application/json")) {
+  setMessage(
+    `Login API error (${response.status}). Please check the login route.`,
+  );
+  return;
+}
+
+const data = await response.json();
 
 if (!response.ok || !data.success) {
   setMessage(data.message || "Login failed");

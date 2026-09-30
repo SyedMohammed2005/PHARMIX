@@ -2,433 +2,147 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
-const letters = ["P", "H", "A", "R", "M", "I", "X"];
-
-export default function Home() {
+export default function PharmixNetflixIntro() {
   const router = useRouter();
+  const brandName = "PHARMIX";
 
   useEffect(() => {
     const timer = setTimeout(() => {
       router.replace("/login");
-    }, 5200);
-
+    }, 7800);
     return () => clearTimeout(timer);
   }, [router]);
 
-  function skipIntro() {
-    router.replace("/login");
-  }
+  const totalLetters = brandName.length;
+  const centerIndex = (totalLetters - 1) / 2;
 
   return (
-    <main
-      onClick={skipIntro}
-      className="relative flex min-h-screen cursor-pointer items-center justify-center overflow-hidden bg-[#030807] text-white"
+    <div className="fixed inset-0 z-50 bg-[#060D0D] flex flex-col items-center justify-center overflow-hidden font-sans select-none">
+      
+      {/* Edge-Only Vignette Mask */}
+      <div 
+        className="absolute inset-0 opacity-25 pointer-events-none" 
+        style={{
+          backgroundImage: `radial-gradient(circle at 1.5px 1.5px, #00C9A7 1.5px, transparent 0)`,
+          backgroundSize: '36px 36px',
+          WebkitMaskImage: 'radial-gradient(circle at center, transparent 35%, black 90%)',
+          maskImage: 'radial-gradient(circle at center, transparent 35%, black 90%)'
+        }}
+      />
+
+      {/* Ambient Glow */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.4 }}
+        animate={{ opacity: [0, 0.4, 0.2], scale: [0.4, 1.3, 1.7] }}
+        transition={{ duration: 7.2, ease: "easeOut" }}
+        className="absolute w-[750px] h-[750px] bg-[#00C9A7]/20 rounded-full blur-[170px] pointer-events-none"
+      />
+
+      <motion.div
+        initial={{ scale: 0.7, opacity: 0 }}
+        animate={{ 
+          scale: [0.7, 1, 1.05, 1, 1.02],
+          opacity: [0, 1, 1, 1, 1] 
+        }}
+        transition={{ 
+          duration: 7.5, 
+          times: [0, 0.35, 0.6, 0.85, 1],
+          ease: "easeInOut" 
+        }}
+        className="flex flex-col items-center justify-center z-10"
+      >
+        {/* LOGO MARK 1: Minimalist Cross + Analytics Line */}
+     {/* LOGO MARK 2: Precision Geometric Capsule Cross */}
+<motion.div
+  initial={{ opacity: 0, y: -25, scale: 0.8 }}
+  animate={{ opacity: 1, y: 0, scale: 1 }}
+  transition={{ duration: 1.4, delay: 0.2, ease: [0.12, 0.8, 0.2, 1] }}
+  className="mb-8 relative"
+>
+  <div className="w-20 h-20 sm:w-22 sm:h-22 bg-[#081514] border border-[#00C9A7]/30 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(0,201,167,0.2)]">
+    <svg
+      className="w-11 h-11"
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
     >
-      {/* =========================================================
-          BACKGROUND
-      ========================================================= */}
+      {/* Left Capsule Half */}
+      <path
+        d="M12 24C12 17.3726 17.3726 12 24 12V36C17.3726 36 12 30.6274 12 24Z"
+        fill="#00C9A7"
+      />
+      {/* Right Capsule Half (Outlined) */}
+      <path
+        d="M24 12C30.6274 12 36 17.3726 36 24C36 30.6274 30.6274 36 24 36V12Z"
+        stroke="#E6FFFA"
+        strokeWidth="3"
+      />
+      {/* Center Medical Cross Notch */}
+      <path
+        d="M21 24H27M24 21V27"
+        stroke="#060D0D"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  </div>
+</motion.div>
 
-      <div className="pointer-events-none absolute inset-0">
-        {/* Central ambient light */}
-        <div className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/[0.055] blur-[140px]" />
+        {/* Text Ribbon */}
+        <div className="flex items-center justify-center overflow-visible">
+          {brandName.split("").map((letter, index) => {
+            const offsetFromCenter = index - centerIndex;
+            const initialX = offsetFromCenter * 120;
 
-        {/* Secondary light */}
-        <div className="absolute -left-40 -top-40 h-[420px] w-[420px] rounded-full bg-teal-500/[0.035] blur-[120px]" />
-
-        <div className="absolute -bottom-40 -right-40 h-[480px] w-[480px] rounded-full bg-emerald-500/[0.035] blur-[130px]" />
-
-        {/* Professional grid */}
-        <div
-          className="absolute inset-0 opacity-[0.025]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
-
-        {/* Vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.45)_100%)]" />
-
-        {/* Floating particles */}
-        <span className="absolute left-[14%] top-[25%] h-1 w-1 rounded-full bg-emerald-400/50 animate-particle-one" />
-
-        <span className="absolute left-[27%] top-[70%] h-1 w-1 rounded-full bg-teal-300/40 animate-particle-two" />
-
-        <span className="absolute right-[17%] top-[30%] h-1 w-1 rounded-full bg-emerald-300/50 animate-particle-three" />
-
-        <span className="absolute right-[25%] bottom-[23%] h-1.5 w-1.5 rounded-full bg-teal-300/35 animate-particle-one" />
-      </div>
-
-      {/* =========================================================
-          MAIN LOGO
-      ========================================================= */}
-
-      <div className="relative z-10 flex flex-col items-center">
-        {/* Logo glow */}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[160px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-400/[0.055] blur-[70px] animate-logo-glow" />
-
-        {/* Wordmark */}
-        <div className="relative flex items-center justify-center">
-          {letters.map((letter, index) => (
-            <span
-              key={`${letter}-${index}`}
-              className="pharmix-letter"
-              style={{
-                animationDelay: `${index * 500}ms`,
-              }}
-            >
-              {letter}
-            </span>
-          ))}
+            return (
+              <motion.span
+                key={index}
+                initial={{
+                  x: initialX,
+                  scale: 2.8,
+                  opacity: 0,
+                  filter: "blur(28px)",
+                }}
+                animate={{
+                  x: 0,
+                  scale: [2.8, 1, 1.04, 1],
+                  opacity: 1,
+                  filter: "blur(0px)",
+                }}
+                transition={{
+                  duration: 2.8,
+                  delay: 0.3 + index * 0.08,
+                  ease: [0.12, 0.8, 0.2, 1],
+                }}
+                className="inline-block text-6xl sm:text-8xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-[#E6FFFA] to-[#80E8D1] drop-shadow-[0_0_35px_rgba(0,201,167,0.5)] tracking-tight"
+              >
+                {letter}
+              </motion.span>
+            );
+          })}
         </div>
-
-        {/* Accent line */}
-        <div className="mt-7 h-px w-0 animate-accent-line bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
 
         {/* Subtitle */}
-        <div className="mt-5 overflow-hidden">
-          <p className="animate-subtitle text-center text-[9px] font-medium uppercase tracking-[0.48em] text-slate-400 sm:text-[10px]">
-            Intelligent Pharmacy Platform
-          </p>
-        </div>
-
-        {/* Loading indicator */}
-        <div className="mt-9 h-px w-[170px] overflow-hidden bg-white/[0.08] sm:w-[210px]">
-          <div className="h-full origin-left animate-loading bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-300" />
-        </div>
-
-        <p className="mt-4 animate-status text-[7px] font-medium uppercase tracking-[0.32em] text-slate-600">
-          Initializing intelligence
-        </p>
-      </div>
-
-      {/* =========================================================
-          FOOTER
-      ========================================================= */}
-
-      <div className="absolute bottom-7 left-1/2 z-10 -translate-x-1/2 animate-footer">
-        <div className="flex items-center gap-2.5 text-[7px] font-medium uppercase tracking-[0.28em] text-slate-700">
-          <span className="h-1 w-1 rounded-full bg-emerald-500/50" />
-
-          PHARMIX AI
-
-          <span className="h-1 w-1 rounded-full bg-emerald-500/50" />
-        </div>
-      </div>
-
-      {/* =========================================================
-          ANIMATIONS
-      ========================================================= */}
-
-      <style jsx>{`
-        /* -------------------------------------------------------
-           LETTER REVEAL
-        ------------------------------------------------------- */
-
-        .pharmix-letter {
-          display: inline-block;
-
-          opacity: 0;
-
-          transform:
-            translateY(42px)
-            scale(0.82);
-
-          background: linear-gradient(
-            180deg,
-            #ffffff 0%,
-            #f0fdf9 38%,
-            #a7f3d0 72%,
-            #34d399 100%
-          );
-
-          -webkit-background-clip: text;
-          background-clip: text;
-
-          color: transparent;
-
-          font-size: clamp(4rem, 12vw, 9.5rem);
-
-          font-weight: 900;
-
-          line-height: 0.9;
-
-          letter-spacing: -0.075em;
-
-          text-shadow:
-            0 0 35px rgba(16, 185, 129, 0.08);
-
-          filter: blur(8px);
-
-          animation:
-            letterReveal
-            500ms
-            cubic-bezier(0.16, 1, 0.3, 1)
-            forwards;
-        }
-
-        @keyframes letterReveal {
-          0% {
-            opacity: 0;
-
-            transform:
-              translateY(42px)
-              scale(0.82);
-
-            filter: blur(8px);
-          }
-
-          55% {
-            opacity: 1;
-            filter: blur(0);
-          }
-
-          100% {
-            opacity: 1;
-
-            transform:
-              translateY(0)
-              scale(1);
-
-            filter: blur(0);
-          }
-        }
-
-        /* -------------------------------------------------------
-           LOGO GLOW
-        ------------------------------------------------------- */
-
-        @keyframes logoGlow {
-          0%,
-          100% {
-            opacity: 0.25;
-            transform: translate(-50%, -50%) scale(0.9);
-          }
-
-          50% {
-            opacity: 0.55;
-            transform: translate(-50%, -50%) scale(1.05);
-          }
-        }
-
-        .animate-logo-glow {
-          animation: logoGlow 3.5s ease-in-out infinite;
-        }
-
-        /* -------------------------------------------------------
-           ACCENT LINE
-        ------------------------------------------------------- */
-
-        @keyframes accentLine {
-          0% {
-            width: 0;
-            opacity: 0;
-          }
-
-          100% {
-            width: 145px;
-            opacity: 1;
-          }
-        }
-
-        .animate-accent-line {
-          animation:
-            accentLine
-            900ms
-            cubic-bezier(0.16, 1, 0.3, 1)
-            3.4s
-            forwards;
-        }
-
-        /* -------------------------------------------------------
-           SUBTITLE
-        ------------------------------------------------------- */
-
-        @keyframes subtitleReveal {
-          0% {
-            opacity: 0;
-            transform: translateY(14px);
-          }
-
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-subtitle {
-          opacity: 0;
-
-          animation:
-            subtitleReveal
-            700ms
-            ease-out
-            3.55s
-            forwards;
-        }
-
-        /* -------------------------------------------------------
-           LOADING
-        ------------------------------------------------------- */
-
-        @keyframes loading {
-          0% {
-            transform: scaleX(0);
-          }
-
-          100% {
-            transform: scaleX(1);
-          }
-        }
-
-        .animate-loading {
-          transform: scaleX(0);
-
-          animation:
-            loading
-            2.8s
-            cubic-bezier(0.65, 0, 0.35, 1)
-            2s
-            forwards;
-        }
-
-        /* -------------------------------------------------------
-           STATUS
-        ------------------------------------------------------- */
-
-        @keyframes statusReveal {
-          0% {
-            opacity: 0;
-          }
-
-          100% {
-            opacity: 1;
-          }
-        }
-
-        .animate-status {
-          opacity: 0;
-
-          animation:
-            statusReveal
-            500ms
-            ease-out
-            3.2s
-            forwards;
-        }
-
-        /* -------------------------------------------------------
-           FOOTER
-        ------------------------------------------------------- */
-
-        @keyframes footerReveal {
-          0% {
-            opacity: 0;
-          }
-
-          100% {
-            opacity: 1;
-          }
-        }
-
-        .animate-footer {
-          opacity: 0;
-
-          animation:
-            footerReveal
-            600ms
-            ease-out
-            3.7s
-            forwards;
-        }
-
-        /* -------------------------------------------------------
-           PARTICLES
-        ------------------------------------------------------- */
-
-        @keyframes particleOne {
-          0%,
-          100% {
-            transform: translate(0, 0);
-            opacity: 0.2;
-          }
-
-          50% {
-            transform: translate(22px, -28px);
-            opacity: 0.7;
-          }
-        }
-
-        @keyframes particleTwo {
-          0%,
-          100% {
-            transform: translate(0, 0);
-            opacity: 0.15;
-          }
-
-          50% {
-            transform: translate(-18px, 22px);
-            opacity: 0.6;
-          }
-        }
-
-        @keyframes particleThree {
-          0%,
-          100% {
-            transform: translate(0, 0);
-            opacity: 0.2;
-          }
-
-          50% {
-            transform: translate(28px, 16px);
-            opacity: 0.65;
-          }
-        }
-
-        .animate-particle-one {
-          animation: particleOne 5s ease-in-out infinite;
-        }
-
-        .animate-particle-two {
-          animation: particleTwo 6s ease-in-out infinite;
-        }
-
-        .animate-particle-three {
-          animation: particleThree 7s ease-in-out infinite;
-        }
-
-        /* -------------------------------------------------------
-           REDUCED MOTION
-        ------------------------------------------------------- */
-
-        @media (prefers-reduced-motion: reduce) {
-          .pharmix-letter,
-          .animate-logo-glow,
-          .animate-accent-line,
-          .animate-subtitle,
-          .animate-loading,
-          .animate-status,
-          .animate-footer,
-          .animate-particle-one,
-          .animate-particle-two,
-          .animate-particle-three {
-            animation: none;
-            opacity: 1;
-            transform: none;
-            filter: none;
-          }
-
-          .pharmix-letter {
-            width: auto;
-          }
-
-          .animate-accent-line {
-            width: 145px;
-          }
-        }
-      `}</style>
-    </main>
+        <motion.p
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 0.95, y: 0 }}
+          transition={{ delay: 2.8, duration: 1.2, ease: "easeOut" }}
+          className="text-xs sm:text-sm font-bold text-[#A7F3D0] tracking-[0.45em] uppercase mt-6 flex items-center gap-2"
+        >
+          <span className="w-2 h-2 rounded-full bg-[#34D399] animate-ping" />
+          Intelligence & Demand Analytics
+        </motion.p>
+      </motion.div>
+
+      {/* Dark Fade Out */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0, 1] }}
+        transition={{ duration: 7.8, times: [0, 0.88, 1] }}
+        className="absolute inset-0 bg-black pointer-events-none z-20"
+      />
+    </div>
   );
 }
